@@ -73,64 +73,156 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    // Check if we are in dark mode to apply specific background/surface colors
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      // Uses the main theme's scaffoldBackgroundColor (dark blue-grey)
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
         title: const Text("Login / Signup"),
-        backgroundColor: scheme.primary,
-        foregroundColor: Colors.white,
+        // Use the darker background color for the AppBar to blend with the scaffold
+        backgroundColor: isDarkMode ? theme.scaffoldBackgroundColor : scheme.primary,
+        // Using scheme.onSurface (recommended text color on a dark surface)
+        foregroundColor: isDarkMode ? scheme.onSurface : scheme.onPrimary,
+        elevation: 0, // Remove shadow for a flatter look
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.email),
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
+      body: Center(
+        child: Container(
+          // Use a Card or Container to represent the elevated form area
+          constraints: const BoxConstraints(maxWidth: 400),
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(30),
+          decoration: BoxDecoration(
+            // Use scheme.surface (blueGrey[800]) for the card background for depth
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              // 🎯 FIX: Replaced deprecated withOpacity with explicit hex color (0x1A is ~10% opacity)
+              if (!isDarkMode)
+                const BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
                 ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? "Enter an email" : null,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.lock),
-                  labelText: "Password",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) return "Enter a password";
-                  if (val.length < 6) return "Min 6 characters required";
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.person_add),
-                    onPressed: _signup,
-                    label: const Text("Signup"),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.login),
-                    onPressed: _login,
-                    label: const Text("Login"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(_status, textAlign: TextAlign.center),
             ],
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Keep the container minimal
+              children: [
+                // Title (using primary color for a bright splash)
+                Text(
+                  "Welcome Back",
+                  style: theme.textTheme.headlineSmall!.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Email Field
+                TextFormField(
+                  controller: _emailController,
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.email, color: scheme.onSurfaceVariant),
+                    labelText: "Email",
+                    labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                    border: const OutlineInputBorder(),
+                    // Use the main theme's scaffold background color for the text field input area
+                    fillColor: theme.scaffoldBackgroundColor,
+                    filled: true,
+                    // Vibrant blue focus border
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: scheme.primary, width: 2.0),
+                    ),
+                  ),
+                  validator: (val) =>
+                  val == null || val.isEmpty ? "Enter an email" : null,
+                ),
+                const SizedBox(height: 15),
+
+                // Password Field
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.lock, color: scheme.onSurfaceVariant),
+                    labelText: "Password",
+                    labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                    border: const OutlineInputBorder(),
+                    // Use the main theme's scaffold background color for the text field input area
+                    fillColor: theme.scaffoldBackgroundColor,
+                    filled: true,
+                    // Vibrant blue focus border
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: scheme.primary, width: 2.0),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return "Enter a password";
+                    if (val.length < 6) return "Min 6 characters required";
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 30),
+
+                // Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Signup button: secondary (light grey) and onSecondary (dark text)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.secondary,
+                            foregroundColor: scheme.onSecondary,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                          icon: const Icon(Icons.person_add),
+                          onPressed: _signup,
+                          label: const Text("Signup"),
+                        ),
+                      ),
+                    ),
+
+                    // Login button: primary (vibrant blue) color
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                            foregroundColor: scheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                          icon: const Icon(Icons.login),
+                          onPressed: _login,
+                          label: const Text("Login"),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Status Text
+                Text(
+                  _status,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: scheme.error),
+                ),
+              ],
+            ),
           ),
         ),
       ),
