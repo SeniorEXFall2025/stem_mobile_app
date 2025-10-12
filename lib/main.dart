@@ -33,35 +33,43 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      // Forces the app to always use the dark theme
+      themeMode: ThemeMode.dark,
 
       // 🌞 Light theme
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(),
+        scaffoldBackgroundColor: Colors.grey[50],
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
+          seedColor: Colors.blue,
           brightness: Brightness.light,
         ).copyWith(
-          primary: Colors.teal,
-          secondary: Colors.orange,
-          tertiary: Colors.purpleAccent,
+          primary: Colors.blue[700],
+          secondary: Colors.blueGrey[900],
+          onSecondary: Colors.white,
         ),
       ),
 
-      // 🌙 Dark theme
+      // 🌙 Dark theme (Now active)
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+        // Darkest background color: Colors.blueGrey[900]
+        scaffoldBackgroundColor: Colors.blueGrey[900],
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
+          seedColor: Colors.blue,
           brightness: Brightness.dark,
         ).copyWith(
-          primary: Colors.tealAccent,
-          secondary: Colors.deepOrangeAccent,
-          tertiary: Colors.pinkAccent,
+          // "Log in" button blue
+          primary: Colors.blue[400],
+          // Dark blue-grey for surface (e.g., cards/forms)
+          surface: Colors.blueGrey[800],
+          // Removed deprecated 'background' and 'onBackground' fields
+          secondary: Colors.grey[300],
+          onSecondary: Colors.blueGrey[900],
         ),
       ),
 
@@ -70,7 +78,7 @@ class MyApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingPage(),
         '/auth': (context) => const AuthPage(),
         '/events': (context) => const EventsPage(),
-        '/seed': (context) => const SeedEventsPage(), 
+        '/seed': (context) => const SeedEventsPage(),
         '/create-event': (context) => CreateEventPage(),
       },
 
