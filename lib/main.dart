@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import the login page
 import 'Welcome_page.dart'; // Import the welcome page
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
