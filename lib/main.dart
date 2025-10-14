@@ -33,7 +33,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // Forces the app to always use the dark theme
       themeMode: ThemeMode.dark,
 
       // 🌞 Light theme
@@ -57,17 +56,13 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-        // Darkest background color: Colors.blueGrey[900]
         scaffoldBackgroundColor: Colors.blueGrey[900],
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
           brightness: Brightness.dark,
         ).copyWith(
-          // "Log in" button blue
           primary: Colors.blue[400],
-          // Dark blue-grey for surface (e.g., cards/forms)
           surface: Colors.blueGrey[800],
-          // Removed deprecated 'background' and 'onBackground' fields
           secondary: Colors.grey[300],
           onSecondary: Colors.blueGrey[900],
         ),
