@@ -1,100 +1,102 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
 
   @override
+  _WelcomePageState createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  String selectedOption = 'All Events';
+
+  // Example list of events
+  List<String> allEvents = [
+    'Event A',
+    'Event B',
+    'Event C',
+    'Event D',
+  ];
+
+  List<String> favoriteEvents = [
+    'Event A',
+    'Event C',
+  ];
+
+  List<String> displayedEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Show all events by default
+    displayedEvents = List.from(allEvents);
+  }
+
+  void _updateContent(String option) {
+    setState(() {
+      selectedOption = option;
+      if (option == 'Search Events' || option == 'All Events') {
+        displayedEvents = List.from(allEvents);
+      } else if (option == 'Favorites') {
+        displayedEvents = List.from(favoriteEvents);
+      } else if (option == 'Create Event') {
+        displayedEvents = []; // You can show a form here later
+      }
+    });
+    Navigator.pop(context); // Close the drawer
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser!;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-
-      appBar: AppBar(
-        title: const Text("Welcome"),
-        backgroundColor: theme.scaffoldBackgroundColor,
-        foregroundColor: scheme.onSurface,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Padding( // Add padding for the content container
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.verified_user, size: 60, color: scheme.primary),
-              const SizedBox(height: 15),
-              Text(
-                "Welcome, ${user.email ?? 'User'}",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onSurface),
+      appBar: AppBar(title: Text(selectedOption)),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blue),
+              child: Text(
+                'Navigation',
+                style: TextStyle(color: Colors.white, fontSize: 20),
               ),
-              const SizedBox(height: 10),
-              Text(
-                "UID: ${user.uid}",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 30),
-
-              // 🎯 CHANGE: Wrap the buttons in a Row to make them side-by-side
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // 🚀 Button 1: View STEM Events (Matching AuthPage's Signup/Secondary style)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0), // Spacing between buttons
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.event),
-                        label: const Text("View Events"), // Shortened label
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/events');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          // 🎯 Matching AuthPage Signup button: secondary background
-                          backgroundColor: scheme.secondary,
-                          foregroundColor: scheme.onSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 🚀 Button 2: Logout (Matching AuthPage's Login/Primary style)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8.0), // Spacing between buttons
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.logout),
-                        onPressed: () async {
-                          await FirebaseAuth.instance.signOut();
-                          if (context.mounted) {
-                            Navigator.pushNamedAndRemoveUntil(
-                                context, '/auth', (route) => false);
-                          }
-                        },
-                        label: const Text("Logout"),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          // 🎯 Matching AuthPage Login button: primary background
-                          backgroundColor: scheme.primary,
-                          foregroundColor: scheme.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            ListTile(
+              title: const Text('All Events'),
+              onTap: () => _updateContent('All Events'),
+            ),
+            ListTile(
+              title: const Text('Search Events'),
+              onTap: () => _updateContent('Search Events'),
+            ),
+            ListTile(
+              title: const Text('Favorites'),
+              onTap: () => _updateContent('Favorites'),
+            ),
+            ListTile(
+              title: const Text('Create Event'),
+              onTap: () => _updateContent('Create Event'),
+            ),
+          ],
         ),
       ),
+      body: displayedEvents.isEmpty
+          ? Center(
+              child: selectedOption == 'Create Event'
+                  ? const Text('Create a new event here!')
+                  : const Text('No events to display'),
+            )
+          : ListView.builder(
+              itemCount: displayedEvents.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(displayedEvents[index]),
+                  leading: const Icon(Icons.event),
+                );
+              },
+            ),
     );
   }
 }
+
+
