@@ -90,7 +90,7 @@ class MyApp extends StatelessWidget {
           onSecondary: dark950,
         ),
       ),
-
+      // Named routes
       routes: {
         '/onboarding': (context) => const OnboardingPage(),
         '/events': (context) => const EventsPage(),
