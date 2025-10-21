@@ -47,7 +47,7 @@ class _AuthPageState extends State<AuthPage> {
 
       // Wait until this exact UID is the active user (avoids race after sign out).
       await FirebaseAuth.instance.userChanges().firstWhere(
-        (u) => u != null && u.uid == cred.user!.uid, // <- no "!" after u
+            (u) => u != null && u.uid == cred.user!.uid, // <- no "!" after u
       );
 
       // Create Firestore profile with empty role & interests
@@ -55,10 +55,10 @@ class _AuthPageState extends State<AuthPage> {
           .collection("users")
           .doc(cred.user!.uid)
           .set({
-            "role": null,
-            "interests": <String>[],
-            "createdAt": FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+        "role": null,
+        "interests": <String>[],
+        "createdAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
 
@@ -70,6 +70,7 @@ class _AuthPageState extends State<AuthPage> {
       );
 
       // New users should pick role/interests
+      // 🚨 NOTE: This navigation is fine because it goes to a different app flow.
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
@@ -113,7 +114,7 @@ class _AuthPageState extends State<AuthPage> {
 
       // Wait for the *new* user to be fully active (prevents stuck UI when switching accounts).
       await FirebaseAuth.instance.userChanges().firstWhere(
-        (u) => u != null && u.uid == cred.user!.uid, // <- no "!" after u
+            (u) => u != null && u.uid == cred.user!.uid, // <- no "!" after u
       );
 
       if (!mounted) return;
@@ -129,8 +130,15 @@ class _AuthPageState extends State<AuthPage> {
         ),
       );
 
-      // Go to root so the Stream in main.dart decides where to go.
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const SizedBox.shrink(),
+        ),
+      );
+
     } on FirebaseAuthException catch (e) {
       final msg = 'Login error [${e.code}]: ${e.message}';
       if (mounted) {
@@ -170,6 +178,7 @@ class _AuthPageState extends State<AuthPage> {
             : scheme.primary,
         foregroundColor: isDarkMode ? scheme.onSurface : scheme.onPrimary,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
 
       body: Center(
@@ -267,47 +276,47 @@ class _AuthPageState extends State<AuthPage> {
                 _busy
                     ? const CircularProgressIndicator()
                     : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Signup button: secondary color
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: scheme.secondary,
-                                  foregroundColor: scheme.onSecondary,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 15,
-                                  ),
-                                ),
-                                icon: const Icon(Icons.person_add),
-                                onPressed: _signup,
-                                label: const Text("Signup"),
-                              ),
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Signup button: secondary color
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.secondary,
+                            foregroundColor: scheme.onSecondary,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 15,
                             ),
                           ),
-
-                          // Login button: primary color
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: scheme.primary,
-                                  foregroundColor: scheme.onPrimary,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 15,
-                                  ),
-                                ),
-                                icon: const Icon(Icons.login),
-                                onPressed: _login,
-                                label: const Text("Login"),
-                              ),
-                            ),
-                          ),
-                        ],
+                          icon: const Icon(Icons.person_add),
+                          onPressed: _signup,
+                          label: const Text("Signup"),
+                        ),
                       ),
+                    ),
+
+                    // Login button: primary color
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                            foregroundColor: scheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                            ),
+                          ),
+                          icon: const Icon(Icons.login),
+                          onPressed: _login,
+                          label: const Text("Login"),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
 
                 // Error/status text
