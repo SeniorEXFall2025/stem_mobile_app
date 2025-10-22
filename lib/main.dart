@@ -62,17 +62,16 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(),
         scaffoldBackgroundColor: light100,
-        colorScheme:
-            ColorScheme.fromSwatch(
-              primarySwatch: curiousBlue,
-              brightness: Brightness.light,
-            ).copyWith(
-              primary: curiousBlue.shade600,
-              secondary: curiousBlue.shade900,
-              surface: light50,
-              onPrimary: Colors.white,
-              onSecondary: Colors.white,
-            ),
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: curiousBlue,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: curiousBlue.shade600,
+          secondary: curiousBlue.shade900,
+          surface: light50,
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+        ),
       ),
 
       // Dark theme
@@ -81,22 +80,19 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
         scaffoldBackgroundColor: dark975,
-        colorScheme:
-            ColorScheme.fromSwatch(
-              primarySwatch: curiousBlue,
-              brightness: Brightness.dark,
-            ).copyWith(
-              primary: curiousBlue.shade400,
-              surface: dark950,
-              secondary: Colors.grey[300],
-              onSecondary: dark950,
-            ),
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: curiousBlue,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: curiousBlue.shade400,
+          surface: dark950,
+          secondary: Colors.grey[300],
+          onSecondary: dark950,
+        ),
       ),
-
       // Named routes
       routes: {
         '/onboarding': (context) => const OnboardingPage(),
-        '/auth': (context) => const AuthPage(),
         '/events': (context) => const EventsPage(),
         '/seed': (context) => const SeedEventsPage(),
         '/create-event': (context) => const CreateEventPage(),
@@ -107,14 +103,8 @@ class MyApp extends StatelessWidget {
       },
 
       /// Initial screen logic:
-      /// 1) While Auth connects → spinner
-      /// 2) If logged in → watch Firestore user doc as a stream
-      ///    - missing/incomplete profile → Onboarding
-      ///    - complete → AppShell
-      /// 3) If logged out → Auth
-      ///
-      /// Note: use `userChanges()` instead of `authStateChanges()` so we get
-      /// token refresh + profile changes cleanly.
+      /// This acts as the global **Auth Gate** and ensures only one screen
+      /// is active at the root level based on Firebase state.
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.userChanges(),
         builder: (context, authSnap) {
@@ -123,50 +113,50 @@ class MyApp extends StatelessWidget {
             return const _CenteredSpinner();
           }
 
-          // 2) logged in → listen to user doc
-          if (authSnap.hasData) {
-            final user = authSnap.data!;
-            final stream = FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .snapshots();
-
-            return StreamBuilder<DocumentSnapshot>(
-              stream: stream,
-              builder: (context, userSnap) {
-                if (userSnap.hasError) {
-                  return _ErrorScaffold(
-                    message: 'Profile load failed:\n${userSnap.error}',
-                    onRetry: () => (context as Element).markNeedsBuild(),
-                  );
-                }
-                if (userSnap.connectionState == ConnectionState.waiting) {
-                  return const _CenteredSpinner();
-                }
-
-                // No doc yet → Onboarding
-                if (!userSnap.hasData || !userSnap.data!.exists) {
-                  return const OnboardingPage();
-                }
-
-                // Check required fields
-                final data =
-                    (userSnap.data!.data() as Map<String, dynamic>?) ?? {};
-                final role = data['role'];
-                final interests = (data['interests'] ?? []) as List;
-
-                if (role == null || interests.isEmpty) {
-                  return const OnboardingPage();
-                }
-
-                // All good → main app
-                return const AppShell();
-              },
-            );
+          // 3) logged out → AuthPage
+          if (!authSnap.hasData) {
+            return const AuthPage();
           }
 
-          // 3) logged out → Auth
-          return const AuthPage();
+          // 2) logged in → listen to user doc
+          final user = authSnap.data!;
+          final stream = FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots();
+
+          return StreamBuilder<DocumentSnapshot>(
+            stream: stream,
+            builder: (context, userSnap) {
+              if (userSnap.hasError) {
+                return _ErrorScaffold(
+                  message: 'Profile load failed:\n${userSnap.error}',
+                  onRetry: () => (context as Element).markNeedsBuild(),
+                );
+              }
+              if (userSnap.connectionState == ConnectionState.waiting) {
+                return const _CenteredSpinner();
+              }
+
+              // No doc yet → Onboarding
+              if (!userSnap.hasData || !userSnap.data!.exists) {
+                return const OnboardingPage();
+              }
+
+              // Check required fields
+              final data =
+                  (userSnap.data!.data() as Map<String, dynamic>?) ?? {};
+              final role = data['role'];
+              final interests = (data['interests'] ?? []) as List;
+
+              if (role == null || interests.isEmpty) {
+                return const OnboardingPage();
+              }
+
+              // All good → main app
+              return const AppShell();
+            },
+          );
         },
       ),
     );
