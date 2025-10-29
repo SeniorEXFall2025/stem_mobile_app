@@ -38,3 +38,4 @@ class EventDetailPage extends StatelessWidget {
     );
   }
 }
+

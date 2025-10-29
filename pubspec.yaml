@@ -9,7 +9,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # followed by an optional build number separated by a +.
 # Both the version and the builder number may be overridden in flutter
 # build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
+# In Android, build-name is used as versionName while build-number is used as versionCode.
 # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
 # Read more about iOS versioning at
@@ -21,15 +21,20 @@ version: 1.0.0+1
 environment:
   sdk: ^3.9.0
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
+# Dependencies specify other packages that your package needs to work.
+# To automatically upgrade your package dependencies to the latest versions,
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  flutter_native_splash: ^2.4.6
   flutter:
     sdk: flutter
+
+  google_maps_flutter: ^2.10.0
+  geolocator: ^10.0.0
+  permission_handler: ^12.0.1 
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -59,7 +64,7 @@ dev_dependencies:
 flutter:
 
   # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
+  # included with your application so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
 
@@ -77,7 +82,7 @@ flutter:
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
-  # example:
+  # example,
   # fonts:
   #   - family: Schyler
   #     fonts:
@@ -92,3 +97,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_native_splash:
+  # setting a solid color for the background
+  color: "#0e2943" # Background color for the splash screen
+
+  # Image sourced from CO STEM Ecosystem page
+  image: "assets/images/co_stem_logo.png"
+
+  # set different colors or images for dark mode options
+  color_dark: "#0e2943"
+  image_dark: "assets/images/co_stem_logo_dark.png"
+
+  fullscreen: true
+
+  # For Android 12 and later, which uses a different API
+  android_12:
+    image: "assets/images/co_stem_logo_android12.png"
+    icon_background_color: "#111111"

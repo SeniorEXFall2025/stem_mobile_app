@@ -79,16 +79,14 @@ class _AppShellState extends State<AppShell> {
                   // Close any keyboards/overlays
                   FocusScope.of(context).unfocus();
 
-                  // Sign out, then clear the stack to the Login screen.
+                  // Sign out, then clear the stack to the Auth screen.
                   await FirebaseAuth.instance.signOut();
 
                   if (!context.mounted) return;
 
-                  // Navigate back to login page
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/', 
-                    (route) => false,
-                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/auth', (route) => false);
                   break;
               }
             },
