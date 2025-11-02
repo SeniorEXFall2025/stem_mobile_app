@@ -1,210 +1,108 @@
-import 'dart:ui' as ui; // PlatformDispatcher.onError
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:stem_mobile_app/custom_colors.dart';
+import 'package:stem_mobile_app/pages/auth_page.dart';
+import 'package:stem_mobile_app/app_shell.dart';
+import 'package:stem_mobile_app/pages/onboarding_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'firebase_options.dart';
-import 'app_shell.dart';
-import 'custom_colors.dart';
-
-// Pages
-import 'pages/auth_page.dart';
-import 'pages/onboarding_page.dart';
-import 'pages/events_page.dart';
-import 'pages/seed_events_page.dart';
-import 'pages/create_event_page.dart';
-import 'pages/map_page.dart';
-import 'pages/event_detail_page.dart';
-import 'pages/favorites_page.dart';
-import 'pages/about_page.dart';
-
-// Fonts
-import 'package:google_fonts/google_fonts.dart';
-
-/// Make sure Firebase is ready before we build any UI.
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Log early errors to the console so we can see crashes during init.
-  FlutterError.onError = (details) => FlutterError.dumpErrorToConsole(details);
-  ui.PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('Uncaught platform error: $error\n$stack');
-    return true;
-  };
-
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Keep Firestore cache enabled so reads don’t block if network is sleepy.
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
-
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
-/// Root widget: provides theme, routes, and decides first screen.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+
+  final Color _seedColor = curiousBlue;
+
+  // Light Theme Configuration
+  ThemeData get _lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _seedColor,
+        brightness: Brightness.light,
+        primary: curiousBlue,
+        secondary: curiousBlue.shade700,
+        background: Colors.white,
+        onBackground: Colors.black,
+      ),
+      // Use DM Sans Text Theme
+      textTheme: GoogleFonts.dmSansTextTheme(),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      scaffoldBackgroundColor: Colors.white,
+    );
+  }
+
+  // Dark Theme Configuration
+  ThemeData get _darkTheme {
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _seedColor,
+        brightness: Brightness.dark,
+        primary: curiousBlue.shade300,
+        secondary: curiousBlue.shade400,
+        background: dark975,
+        onBackground: Colors.white,
+      ),
+      textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: dark975,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      scaffoldBackgroundColor: dark975,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'STEM Mobile App',
       debugShowCheckedModeBanner: false,
 
-      // Prefer dark for now.
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.system,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
 
-      // Light theme
-      theme: ThemeData(
-        brightness: Brightness.light,
-        useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        scaffoldBackgroundColor: light100,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: curiousBlue,
-          brightness: Brightness.light,
-        ).copyWith(
-          primary: curiousBlue.shade600,
-          secondary: curiousBlue.shade900,
-          surface: light50,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-        ),
-      ),
-
-      // Dark theme
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-        scaffoldBackgroundColor: dark975,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: curiousBlue,
-          brightness: Brightness.dark,
-        ).copyWith(
-          primary: curiousBlue.shade400,
-          surface: dark950,
-          secondary: Colors.grey[300],
-          onSecondary: dark950,
-        ),
-      ),
-      // Named routes
       routes: {
+        '/': (context) => const AuthGate(),
         '/onboarding': (context) => const OnboardingPage(),
-        '/events': (context) => const EventsPage(),
-        '/seed': (context) => const SeedEventsPage(),
-        '/create-event': (context) => const CreateEventPage(),
-        '/map': (context) => const MapPage(),
-        '/favorites': (context) => const FavoritesPage(),
-        '/event': (context) => const EventDetailPage(),
-        '/about': (context) => const AboutPage(),
       },
-
-      /// Initial screen logic:
-      /// This acts as the global **Auth Gate** and ensures only one screen
-      /// is active at the root level based on Firebase state.
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.userChanges(),
-        builder: (context, authSnap) {
-          // 1) waiting on Auth
-          if (authSnap.connectionState == ConnectionState.waiting) {
-            return const _CenteredSpinner();
-          }
-
-          // 3) logged out → AuthPage
-          if (!authSnap.hasData) {
-            return const AuthPage();
-          }
-
-          // 2) logged in → listen to user doc
-          final user = authSnap.data!;
-          final stream = FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .snapshots();
-
-          return StreamBuilder<DocumentSnapshot>(
-            stream: stream,
-            builder: (context, userSnap) {
-              if (userSnap.hasError) {
-                return _ErrorScaffold(
-                  message: 'Profile load failed:\n${userSnap.error}',
-                  onRetry: () => (context as Element).markNeedsBuild(),
-                );
-              }
-              if (userSnap.connectionState == ConnectionState.waiting) {
-                return const _CenteredSpinner();
-              }
-
-              // No doc yet → Onboarding
-              if (!userSnap.hasData || !userSnap.data!.exists) {
-                return const OnboardingPage();
-              }
-
-              // Check required fields
-              final data =
-                  (userSnap.data!.data() as Map<String, dynamic>?) ?? {};
-              final role = data['role'];
-              final interests = (data['interests'] ?? []) as List;
-
-              if (role == null || interests.isEmpty) {
-                return const OnboardingPage();
-              }
-
-              // All good → main app
-              return const AppShell();
-            },
-          );
-        },
-      ),
+      initialRoute: '/',
     );
   }
 }
 
-/// Small centered spinner we reuse.
-class _CenteredSpinner extends StatelessWidget {
-  const _CenteredSpinner();
+/// The Auth Gate determines whether to show the AuthPage or the AppShell.
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
-}
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          // User is not signed in
+          return const AuthPage();
+        }
 
-/// Simple error screen with a retry button.
-class _ErrorScaffold extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorScaffold({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurface),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      ),
+        // User is signed in
+        return const AppShell();
+      },
     );
   }
 }
