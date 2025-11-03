@@ -75,6 +75,9 @@ class _AuthPageState extends State<AuthPage> {
         context,
       ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
     } on FirebaseAuthException catch (e) {
+      // Log full error for debugging (code + stack)
+      debugPrint('FirebaseAuthException during signup: ${e.code} ${e.message}');
+      debugPrintStack(label: 'signup stack', stackTrace: StackTrace.current);
       final msg = 'Signup error [${e.code}]: ${e.message}';
       if (mounted) {
         setState(() => _status = "🔥 $msg");
@@ -83,6 +86,8 @@ class _AuthPageState extends State<AuthPage> {
         ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
+      debugPrint('Exception during signup: $e');
+      debugPrintStack(label: 'signup stack', stackTrace: StackTrace.current);
       final msg = 'Signup error: $e';
       if (mounted) {
         setState(() => _status = "🔥 $msg");
@@ -140,6 +145,8 @@ class _AuthPageState extends State<AuthPage> {
       );
 
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException during login: ${e.code} ${e.message}');
+      debugPrintStack(label: 'login stack', stackTrace: StackTrace.current);
       final msg = 'Login error [${e.code}]: ${e.message}';
       if (mounted) {
         setState(() => _status = "🔥 $msg");
@@ -148,6 +155,8 @@ class _AuthPageState extends State<AuthPage> {
         ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
+      debugPrint('Exception during login: $e');
+      debugPrintStack(label: 'login stack', stackTrace: StackTrace.current);
       final msg = 'Login error: $e';
       if (mounted) {
         setState(() => _status = "🔥 $msg");

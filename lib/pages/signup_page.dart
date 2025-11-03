@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -237,19 +239,54 @@ class _SignUpPageState extends State<SignUpPage> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_passwordController.text !=
-                          _confirmPasswordController.text) {
+                    onPressed: () async {
+                      final email = _emailController.text.trim();
+                      final password = _passwordController.text.trim();
+                      if (email.isEmpty || password.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Passwords do not match")),
+                          const SnackBar(content: Text('Enter email and password')),
                         );
-                      } else {
+                        return;
+                      }
+                      if (_passwordController.text != _confirmPasswordController.text) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text("Account created as $_role!")),
+                          const SnackBar(content: Text("Passwords do not match")),
                         );
+                        return;
+                      }
+
+                      showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => const Center(child: CircularProgressIndicator()),
+                      );
+
+                      try {
+                        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                          email: email,
+                          password: password,
+                        );
+
+                        final uid = cred.user?.uid;
+                        if (uid != null) {
+                          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+                            'role': _role,
+                            'interests': <String>[],
+                            'createdAt': FieldValue.serverTimestamp(),
+                          }, SetOptions(merge: true));
+                        }
+
+                        Navigator.of(context).pop(); // dismiss spinner
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Account created as $_role!')),
+                        );
+                        Navigator.of(context).pushNamedAndRemoveUntil('/onboarding', (r) => false);
+                      } on FirebaseAuthException catch (e) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${e.code}: ${e.message}')));
+                      } catch (e) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Signup failed: $e')));
                       }
                     },
                     style: ElevatedButton.styleFrom(
