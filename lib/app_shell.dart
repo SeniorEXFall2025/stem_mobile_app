@@ -53,8 +53,11 @@ class _AppShellState extends State<AppShell> {
             Text(
               'Signed in as $userEmail',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.7),
+                  ),
             ),
           ],
         ),
