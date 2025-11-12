@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stem_mobile_app/custom_colors.dart';
 
 /// Simple email/password auth screen.
 class AuthPage extends StatefulWidget {
@@ -81,6 +82,7 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
+  // Log in existing user
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -138,19 +140,33 @@ class _AuthPageState extends State<AuthPage> {
 
     final Color deepBlueBackground = theme.scaffoldBackgroundColor;
 
-    final Color mainBlueColor = scheme.primary;
-
     final Color unfocusedBorderColor = Colors.grey.shade400;
 
+    final Color logoTextColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : curiousBlue.shade900;
+
+    final Color linkTextColor = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.8)
+        : curiousBlue.shade900.withOpacity(0.9);
+
+
+    final Color appBarTextColor = theme.brightness == Brightness.dark
+        ? scheme.onPrimary
+        : curiousBlue.shade900;
 
     return Scaffold(
 
       backgroundColor: deepBlueBackground,
 
       appBar: AppBar(
-        title: const Text("Login"),
+
+        title: Text(
+          "Login",
+          style: TextStyle(color: appBarTextColor),
+        ),
         backgroundColor: deepBlueBackground,
-        foregroundColor: scheme.onPrimary,
+        foregroundColor: appBarTextColor,
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
@@ -168,33 +184,41 @@ class _AuthPageState extends State<AuthPage> {
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                   child: Image.asset(
-                    'assets/images/co_stem_logo.png',
+                    'assets/images/co_stem_logo_transparent.png',
                     height: 160,
                   ),
                 ),
               ),
-              const SizedBox(height: 50),
+
+              // CO STEM Ecosystem (Color changes based on theme)
+              Center(
+                child: Text(
+                  "CO STEM Ecosystem",
+                  style: TextStyle(
+                    color: logoTextColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
 
               // Email Input
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: scheme.onSurface),
                 decoration: InputDecoration(
                   labelText: "Email",
-                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                  labelStyle: TextStyle(color: curiousBlue.shade900),
                   filled: true,
                   fillColor: Colors.white,
 
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0), // <- ADDED BORDER
+                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
                   ),
 
                   focusedBorder: OutlineInputBorder(
@@ -216,16 +240,15 @@ class _AuthPageState extends State<AuthPage> {
               TextFormField(
                 controller: _password,
                 obscureText: true,
-                style: TextStyle(color: scheme.onSurface),
                 decoration: InputDecoration(
                   labelText: "Password",
-                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                  labelStyle: TextStyle(color: curiousBlue.shade900),
                   filled: true,
                   fillColor: Colors.white,
 
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0), // <- ADDED BORDER
+                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
                   ),
 
                   focusedBorder: OutlineInputBorder(
@@ -246,13 +269,11 @@ class _AuthPageState extends State<AuthPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Password reset functionality coming soon!")),
-                    );
+                    Navigator.pushNamed(context, '/forgot-password');
                   },
                   child: Text(
-                    "Forgot Password Link",
-                    style: TextStyle(color: scheme.onPrimary.withOpacity(0.8), fontSize: 14),
+                    "Forgot Password",
+                    style: TextStyle(color: linkTextColor, fontSize: 14),
                   ),
                 ),
               ),
@@ -267,8 +288,8 @@ class _AuthPageState extends State<AuthPage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: mainBlueColor,
-                        foregroundColor: scheme.onPrimary, // White text
+                        backgroundColor: curiousBlue.shade900,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
@@ -280,17 +301,17 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   const SizedBox(height: 15),
 
+                  // Register button (Light Blue background, Deep Blue text/border)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: mainBlueColor, // Blue text
+                        backgroundColor: curiousBlue.shade50,
+                        foregroundColor: curiousBlue.shade900,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
-                          // Blue border for distinction
-                          side: BorderSide(color: mainBlueColor, width: 2),
+                          side: BorderSide(color: curiousBlue.shade900, width: 2),
                         ),
                       ),
                       onPressed: _signup,

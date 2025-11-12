@@ -6,6 +6,7 @@ import 'package:stem_mobile_app/app_shell.dart';
 import 'package:stem_mobile_app/pages/onboarding_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +33,21 @@ class MyApp extends StatelessWidget {
         background: Colors.white,
         onBackground: Colors.black,
       ),
-      // Use DM Sans Text Theme
       textTheme: GoogleFonts.dmSansTextTheme(),
+
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: TextStyle(color: curiousBlue.shade900),
+
+        hintStyle: TextStyle(color: Colors.grey.shade900),
+
+        floatingLabelStyle: TextStyle(color: curiousBlue.shade900),
+
+        prefixStyle: const TextStyle(color: Colors.black),
+        suffixStyle: const TextStyle(color: Colors.black),
+        helperStyle: const TextStyle(color: Colors.black54),
+        counterStyle: const TextStyle(color: Colors.black54),
+      ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -45,7 +59,6 @@ class MyApp extends StatelessWidget {
 
   // Dark Theme Configuration
   ThemeData get _darkTheme {
-
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -58,6 +71,21 @@ class MyApp extends StatelessWidget {
         onBackground: Colors.white,
       ),
       textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
+
+
+      inputDecorationTheme: const InputDecorationTheme(
+
+        labelStyle: TextStyle(color: Colors.white70),
+        hintStyle: TextStyle(color: Colors.white54),
+        floatingLabelStyle: TextStyle(color: Colors.white),
+
+
+        prefixStyle: TextStyle(color: Colors.black),
+        suffixStyle: TextStyle(color: Colors.black),
+        helperStyle: TextStyle(color: Colors.black54),
+        counterStyle: TextStyle(color: Colors.black54),
+      ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: dark975,
         foregroundColor: Colors.white,
@@ -80,6 +108,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const AuthGate(),
         '/onboarding': (context) => const OnboardingPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
       },
       initialRoute: '/',
     );
