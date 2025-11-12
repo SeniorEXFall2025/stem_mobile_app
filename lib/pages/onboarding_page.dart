@@ -199,8 +199,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       : ElevatedButton.icon(
                           icon: const Icon(Icons.check),
                           label: const Text('Save'),
-                          onPressed:
-                              (_selectedRole != null &&
+                          onPressed: (_selectedRole != null &&
                                   _selectedInterests.isNotEmpty)
                               ? _saveProfile
                               : null,

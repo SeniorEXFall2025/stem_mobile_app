@@ -17,6 +17,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  final Color _seedColor = curiousBlue;
 
   final Color _seedColor = curiousBlue;
 
@@ -46,6 +47,25 @@ class MyApp extends StatelessWidget {
         suffixStyle: const TextStyle(color: Colors.black),
         helperStyle: const TextStyle(color: Colors.black54),
         counterStyle: const TextStyle(color: Colors.black54),
+  // Light Theme Configuration
+  ThemeData get _lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _seedColor,
+        brightness: Brightness.light,
+        primary: curiousBlue,
+        secondary: curiousBlue.shade700,
+        background: Colors.white,
+        onBackground: Colors.black,
+      ),
+      // Use DM Sans Text Theme
+      textTheme: GoogleFonts.dmSansTextTheme(),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
 
       appBarTheme: const AppBarTheme(
@@ -53,6 +73,9 @@ class MyApp extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
+      scaffoldBackgroundColor: Colors.white,
+    );
+  }
       scaffoldBackgroundColor: Colors.white,
     );
   }
@@ -70,6 +93,11 @@ class MyApp extends StatelessWidget {
         background: dark975,
         onBackground: Colors.white,
       ),
+      textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: dark975,
+        foregroundColor: Colors.white,
+        elevation: 0,
       textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
 
 
@@ -97,6 +125,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'STEM Mobile App',
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.system,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
+      routes: {
+        '/': (context) => const AuthGate(),
+        '/onboarding': (context) => const OnboardingPage(),
+      },
+      initialRoute: '/',
+    );
     return MaterialApp(
       title: 'STEM Mobile App',
       debugShowCheckedModeBanner: false,

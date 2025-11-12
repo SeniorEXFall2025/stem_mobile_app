@@ -117,7 +117,9 @@ class _AuthPageState extends State<AuthPage> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       Navigator.of(context).pushReplacementNamed('/');
+      if (!mounted) return;
 
+      Navigator.of(context).pushReplacementNamed('/');
     } on FirebaseAuthException catch (e) {
       final msg = 'Login error [${e.code}]: ${e.message}';
       if (mounted) {
@@ -155,11 +157,21 @@ class _AuthPageState extends State<AuthPage> {
         ? scheme.onPrimary
         : curiousBlue.shade900;
 
+    final Color deepBlueBackground = theme.scaffoldBackgroundColor;
+
+    final Color mainBlueColor = scheme.primary;
+
+    final Color unfocusedBorderColor = Colors.grey.shade400;
+
     return Scaffold(
+      backgroundColor: deepBlueBackground,
 
       backgroundColor: deepBlueBackground,
 
       appBar: AppBar(
+        title: const Text("Login"),
+        backgroundColor: deepBlueBackground,
+        foregroundColor: scheme.onPrimary,
 
         title: Text(
           "Login",
@@ -200,32 +212,57 @@ class _AuthPageState extends State<AuthPage> {
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
+      body: SingleChildScrollView(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 24.0).copyWith(bottom: 50),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 50),
+
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Image.asset(
+                    'assets/images/co_stem_logo.png',
+                    height: 160,
                   ),
                 ),
               ),
 
               const SizedBox(height: 30),
+              ),
+              const SizedBox(height: 50),
 
               // Email Input
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
+                style: TextStyle(color: scheme.onSurface),
                 decoration: InputDecoration(
                   labelText: "Email",
-                  labelStyle: TextStyle(color: curiousBlue.shade900),
+                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
                   filled: true,
                   fillColor: Colors.white,
-
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
+                    borderSide: BorderSide(
+                        color: unfocusedBorderColor,
+                        width: 1.0), // <- ADDED BORDER
                   ),
-
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
                     borderSide: BorderSide(color: scheme.secondary, width: 2.0),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 ),
                 validator: (val) {
                   final t = val?.trim() ?? '';
@@ -240,22 +277,24 @@ class _AuthPageState extends State<AuthPage> {
               TextFormField(
                 controller: _password,
                 obscureText: true,
+                style: TextStyle(color: scheme.onSurface),
                 decoration: InputDecoration(
                   labelText: "Password",
-                  labelStyle: TextStyle(color: curiousBlue.shade900),
+                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
                   filled: true,
                   fillColor: Colors.white,
-
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
+                    borderSide: BorderSide(
+                        color: unfocusedBorderColor,
+                        width: 1.0), // <- ADDED BORDER
                   ),
-
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
                     borderSide: BorderSide(color: scheme.secondary, width: 2.0),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return "Enter a password";
@@ -269,11 +308,16 @@ class _AuthPageState extends State<AuthPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/forgot-password');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              "Password reset functionality coming soon!")),
+                    );
                   },
                   child: Text(
-                    "Forgot Password",
-                    style: TextStyle(color: linkTextColor, fontSize: 14),
+                    "Forgot Password Link",
+                    style: TextStyle(
+                        color: scheme.onPrimary.withAlpha(204), fontSize: 14),
                   ),
                 ),
               ),
@@ -320,6 +364,53 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              // Buttons
+              _busy
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.white))
+                  : Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: mainBlueColor,
+                              foregroundColor: scheme.onPrimary, // White text
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            onPressed: _login,
+                            child: const Text("Log in",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: mainBlueColor, // Blue text
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                // Blue border for distinction
+                                side:
+                                    BorderSide(color: mainBlueColor, width: 2),
+                              ),
+                            ),
+                            onPressed: _signup,
+                            child: const Text("Register",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
               const SizedBox(height: 20),
 
               // Error/status text
