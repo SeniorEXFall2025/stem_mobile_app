@@ -66,6 +66,7 @@ class _EventsPageState extends State<EventsPage> {
         backgroundColor: appBarBackgroundColor,
         foregroundColor: appBarForegroundColor,
         actions: [
+          // ✅ Seeder stays in AppBar
           IconButton(
             icon: const Icon(Icons.science),
             tooltip: "Seed Sample Events",
@@ -127,88 +128,12 @@ class _EventsPageState extends State<EventsPage> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 4,
-                child: InkWell(
-                  // ✅ THIS IS THE KEY PART - Makes the card tappable
-                  onTap: () {
-                    // Navigate to EventDetailsPage when card is tapped
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EventDetailsPage(
-                          eventId: doc.id, // Pass the document ID
-                          eventData: data, // Pass all the event data
-                        ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          scheme.primary.withOpacity(0.12),
-                          scheme.secondary.withOpacity(0.12),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: scheme.primary,
-                                  ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 16),
-                            const SizedBox(width: 6),
-                            Text(formattedDate),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
-                            const SizedBox(width: 6),
-                            Expanded(child: Text(location)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          description,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          children: topics
-                              .map((t) => Chip(
-                                    label: Text(t),
-                                    backgroundColor: scheme.secondaryContainer,
-                                  ))
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                color: cardBackgroundColor,
                 child: Container(
                   decoration: BoxDecoration(
-
                     gradient: LinearGradient(
                       colors: [
-                        accentColor.withOpacity(0.04),
-                        accentColor.withOpacity(0.01),
+                        scheme.primary.withOpacity(0.12),
+                        scheme.secondary.withOpacity(0.12),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -222,14 +147,14 @@ class _EventsPageState extends State<EventsPage> {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: accentColor,
-                        ),
+                              fontWeight: FontWeight.bold,
+                              color: scheme.primary,
+                            ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 16, color: scheme.primary),
+                          const Icon(Icons.calendar_today, size: 16),
                           const SizedBox(width: 6),
                           Text(formattedDate),
                         ],
@@ -237,7 +162,7 @@ class _EventsPageState extends State<EventsPage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 16, color: scheme.primary),
+                          const Icon(Icons.location_on, size: 16),
                           const SizedBox(width: 6),
                           Expanded(child: Text(location)),
                         ],
@@ -254,10 +179,9 @@ class _EventsPageState extends State<EventsPage> {
                         spacing: 6,
                         children: topics
                             .map((t) => Chip(
-                          label: Text(t),
-                          backgroundColor: accentColor,
-                          labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                        ))
+                                  label: Text(t),
+                                  backgroundColor: scheme.secondaryContainer,
+                                ))
                             .toList(),
                       ),
                     ],
@@ -272,14 +196,12 @@ class _EventsPageState extends State<EventsPage> {
       // ✅ FAB at bottom right — only for mentors/educators
       floatingActionButton: (userRole == "mentor" || userRole == "educator")
           ? FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/create-event');
-        },
-        icon: const Icon(Icons.add),
-        label: const Text("Create Event"),
-        backgroundColor: accentColor,
-        foregroundColor: Colors.white,
-      )
+              onPressed: () {
+                Navigator.pushNamed(context, '/create-event');
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Create Event"),
+            )
           : null,
     );
   }
