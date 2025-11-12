@@ -1,6 +1,6 @@
 name: stem_mobile_app
 description: A mobile application for the Colorado STEM Ecosystem.
-publish_to: 'none' # Remove this line when/if we publish to pub.dev
+publish_to: 'none' # Remove this line if you intend to publish to pub.dev
 
 version: 1.0.0+1
 
@@ -16,17 +16,19 @@ dependencies:
   firebase_core: ^2.24.2
   firebase_auth: ^4.15.2
   cloud_firestore: ^4.13.5
-  firebase_ui_auth: ^1.10.1
+  # firebase_ui_auth: ^1.10.1 # <-- REDUNDANT: Removed as AuthPage is now custom
 
   # Utilities
   intl: ^0.20.2
-  google_fonts: ^6.1.0
 
-  # NEW: Packages required for MapPage.dart
-  google_maps_flutter: ^2.5.3
-  geolocator: ^11.0.0
+  # Theming/UI/Fonts
+  google_fonts: ^6.1.0 # Used for DM Sans font in lib/main.dart
 
-  # Theming/UI
+  # Packages required for MapPage.dart
+  google_maps_flutter: ^2.5.3 # Adds Google Maps view to Flutter
+  geolocator: ^11.0.0          # For handling location permissions and getting current location
+
+  # Splash Screen Package
   flutter_native_splash: ^2.3.10
 
 dev_dependencies:
@@ -38,18 +40,33 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
-  # The following line ensures that the Material Icons font is
-  # included with your application so that you can use the icons in
-  # the material Icons class.
+  # Ensures that the Material Icons font is included
   uses-material-design: true
 
-  # Asset declarations are REQUIRED for your logo.
+  # Asset declarations are REQUIRED for your logo, fixing the asset not found error.
   assets:
-    - assets/images/ # Correctly includes images, fixing the logo issue
+    - assets/images/
+    # If you later decide to include a local fonts folder, you would add:
+    # - assets/fonts/
 
-# flutter_native_splash configuration is typically outside the flutter block
+  # NOTE: The explicit 'fonts:' section for Poppins has been REMOVED/OMITTED
+  # because we are using the `google_fonts` package, which handles bundling.
+
+
+# flutter_native_splash configuration
 flutter_native_splash:
-  color: "#218DD6"
-  image: assets/images/co_stem_logo.png
+  # Updated: Use white background (#FFFFFF) for light mode, matching the main app theme.
+  color: "#FFFFFF"
+  image: assets/images/co_stem_logo_transparent.png
+
+  # Maintained: Use the deep dark color (#0e0e11) for dark mode, matching the dark975 theme.
   color_dark: "#0e0e11"
-  image_dark: assets/images/co_stem_logo.png
+  image_dark: assets/images/co_stem_logo_transparent.png
+
+  # ADDED: Explicit configuration for Android 12+
+  # This tells Android 12+ to use your logo as the icon and sets the background color.
+  android_12:
+    image: assets/images/co_stem_logo_transparent.png
+    icon_background_color: "#FFFFFF"
+    image_dark: assets/images/co_stem_logo_transparent.png
+    icon_background_color_dark: "#0e0e11"
