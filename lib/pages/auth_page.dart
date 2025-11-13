@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stem_mobile_app/custom_colors.dart'; // Added for access to curiousBlue
 
 /// Simple email/password auth screen.
+/// - Login: uses main.dart's Auth Gate to decide next screen (AppShell / Onboarding)
+/// - Signup: creates the profile doc, then navigates to /onboarding
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
 
@@ -16,7 +19,7 @@ class _AuthPageState extends State<AuthPage> {
   final _password = TextEditingController();
 
   String _status = ""; // shows error/info text under buttons
-  bool _busy = false; // shows a spinner while hitting Firebase
+  bool _busy = false;  // shows a spinner while hitting Firebase
 
   @override
   void dispose() {
@@ -44,7 +47,7 @@ class _AuthPageState extends State<AuthPage> {
 
       await FirebaseAuth.instance.userChanges().firstWhere(
             (u) => u != null && u.uid == cred.user!.uid,
-          );
+      );
 
       await FirebaseFirestore.instance
           .collection("users")
@@ -81,6 +84,7 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
+  // Log in existing user
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -99,7 +103,7 @@ class _AuthPageState extends State<AuthPage> {
 
       await FirebaseAuth.instance.userChanges().firstWhere(
             (u) => u != null && u.uid == cred.user!.uid,
-          );
+      );
 
       if (!mounted) return;
 
@@ -114,9 +118,8 @@ class _AuthPageState extends State<AuthPage> {
 
       await Future.delayed(const Duration(milliseconds: 500));
 
-      if (!mounted) return;
-
       Navigator.of(context).pushReplacementNamed('/');
+
     } on FirebaseAuthException catch (e) {
       final msg = 'Login error [${e.code}]: ${e.message}';
       if (mounted) {
@@ -137,24 +140,52 @@ class _AuthPageState extends State<AuthPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
+    // CRITICAL FIX: The deep blue background color (dark975) is set as
+    // the dark theme's scaffold background. We use that here, and ensure
+    // the app is running in dark mode for this page if possible.
     final Color deepBlueBackground = theme.scaffoldBackgroundColor;
 
-    final Color mainBlueColor = scheme.primary;
-
+    // Define a light gray border color for the unfocused state
     final Color unfocusedBorderColor = Colors.grey.shade400;
 
+    // Dynamically determine the text color for the logo's title
+    final Color logoTextColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : curiousBlue.shade900;
+
+    // Dynamically determine the text color for the forgot password link
+    final Color linkTextColor = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.8) // Light color against deep blue background
+        : curiousBlue.shade900.withOpacity(0.9); // Dark color against white background
+
+    // Dynamically determine the color for the AppBar text
+    final Color appBarTextColor = theme.brightness == Brightness.dark
+        ? scheme.onPrimary // White in dark mode
+        : curiousBlue.shade900; // Dark blue in light mode
+
+    // REMOVED: Since we moved inputContentColor logic to lib/main.dart theme
+    // final Color inputContentColor = Colors.black;
+
     return Scaffold(
+      // Use the deep blue background color
       backgroundColor: deepBlueBackground,
+
       appBar: AppBar(
-        title: const Text("Login"),
-        backgroundColor: deepBlueBackground,
-        foregroundColor: scheme.onPrimary,
+        // UPDATED: Use a dynamic Text widget to apply the adaptive color
+        title: Text(
+          "Login",
+          style: TextStyle(color: appBarTextColor), // Explicitly set the color
+        ),
+        backgroundColor: deepBlueBackground, // Match the scaffold background
+        // The foregroundColor will still handle icons/back buttons, but the title
+        // now uses its own explicit color for reliability.
+        foregroundColor: appBarTextColor,
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
+
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 24.0).copyWith(bottom: 50),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0).copyWith(bottom: 50),
         child: Form(
           key: _formKey,
           child: Column(
@@ -163,43 +194,58 @@ class _AuthPageState extends State<AuthPage> {
             children: [
               const SizedBox(height: 50),
 
+              // Logo
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                   child: Image.asset(
-                    'assets/images/co_stem_logo.png',
+                    'assets/images/co_stem_logo_transparent.png',
                     height: 160,
                   ),
                 ),
               ),
-              const SizedBox(height: 50),
+
+              // New Text: CO STEM Ecosystem (Color changes based on theme)
+              Center(
+                child: Text(
+                  "CO STEM Ecosystem",
+                  style: TextStyle(
+                    color: logoTextColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30), // Reduced space after logo+text
 
               // Email Input
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: scheme.onSurface),
+                // FIX: Explicitly set input text color to black because the
+                // fill color is hardcoded to white, preventing the dark mode
+                // theme's white text from being used here.
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   labelText: "Email",
-                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                  // Label text is dark blue
+                  labelStyle: TextStyle(color: curiousBlue.shade900),
                   filled: true,
                   fillColor: Colors.white,
+
+                  // Add a visible light gray border when unfocused
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                        color: unfocusedBorderColor,
-                        width: 1.0), // <- ADDED BORDER
+                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
                   ),
+
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
                     borderSide: BorderSide(color: scheme.secondary, width: 2.0),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 ),
                 validator: (val) {
                   final t = val?.trim() ?? '';
@@ -214,24 +260,29 @@ class _AuthPageState extends State<AuthPage> {
               TextFormField(
                 controller: _password,
                 obscureText: true,
-                style: TextStyle(color: scheme.onSurface),
+                // FIX: Explicitly set input text color to black because the
+                // fill color is hardcoded to white, preventing the dark mode
+                // theme's white text from being used here.
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   labelText: "Password",
-                  labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+                  // Label text is dark blue
+                  labelStyle: TextStyle(color: curiousBlue.shade900),
                   filled: true,
                   fillColor: Colors.white,
+
+                  // Add a visible light gray border when unfocused
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                        color: unfocusedBorderColor,
-                        width: 1.0), // <- ADDED BORDER
+                    borderSide: BorderSide(color: unfocusedBorderColor, width: 1.0),
                   ),
+
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
                     borderSide: BorderSide(color: scheme.secondary, width: 2.0),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  // Corrected to use named constructor `symmetric`
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return "Enter a password";
@@ -241,20 +292,18 @@ class _AuthPageState extends State<AuthPage> {
               ),
               const SizedBox(height: 10),
 
+              // Forgot Password Link (aligned right, now adaptive color)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              "Password reset functionality coming soon!")),
-                    );
+                    // Navigate to the ForgotPasswordPage using the defined route
+                    Navigator.pushNamed(context, '/forgot-password');
                   },
                   child: Text(
                     "Forgot Password Link",
-                    style: TextStyle(
-                        color: scheme.onPrimary.withAlpha(204), fontSize: 14),
+                    // UPDATED: Use the adaptive linkTextColor
+                    style: TextStyle(color: linkTextColor, fontSize: 14),
                   ),
                 ),
               ),
@@ -262,50 +311,48 @@ class _AuthPageState extends State<AuthPage> {
 
               // Buttons
               _busy
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white))
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
                   : Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: mainBlueColor,
-                              foregroundColor: scheme.onPrimary, // White text
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            onPressed: _login,
-                            child: const Text("Log in",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
-                          ),
+                children: [
+                  // Log in button (Darker Blue background, White text)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        // Uses the darker curiousBlue.shade900 for prominence
+                        backgroundColor: curiousBlue.shade900,
+                        // Explicitly setting foreground color to white
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(height: 15),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: mainBlueColor, // Blue text
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                // Blue border for distinction
-                                side:
-                                    BorderSide(color: mainBlueColor, width: 2),
-                              ),
-                            ),
-                            onPressed: _signup,
-                            child: const Text("Register",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
+                      ),
+                      onPressed: _login,
+                      child: const Text("Log in", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Register button (Light Blue background, Deep Blue text/border)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: curiousBlue.shade50,
+                        foregroundColor: curiousBlue.shade900,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          side: BorderSide(color: curiousBlue.shade900, width: 2),
+                        ),
+                      ),
+                      onPressed: _signup,
+                      child: const Text("Register", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
 
               // Error/status text

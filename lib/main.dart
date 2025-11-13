@@ -6,6 +6,7 @@ import 'package:stem_mobile_app/app_shell.dart';
 import 'package:stem_mobile_app/pages/onboarding_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // NOTE: Assuming curiousBlue and dark975 are correctly defined in custom_colors.dart
   final Color _seedColor = curiousBlue;
 
   // Light Theme Configuration
@@ -31,8 +33,21 @@ class MyApp extends StatelessWidget {
         background: Colors.white,
         onBackground: Colors.black,
       ),
-      // Use DM Sans Text Theme
       textTheme: GoogleFonts.dmSansTextTheme(),
+
+      inputDecorationTheme: InputDecorationTheme(
+        // Controls the color of the text the user types (making labels darker)
+        labelStyle: TextStyle(color: curiousBlue.shade900),
+        hintStyle: TextStyle(color: Colors.grey.shade900),
+        floatingLabelStyle: TextStyle(color: curiousBlue.shade900),
+
+        // Ensure input text itself is black regardless of field color
+        prefixStyle: const TextStyle(color: Colors.black),
+        suffixStyle: const TextStyle(color: Colors.black),
+        helperStyle: const TextStyle(color: Colors.black54),
+        counterStyle: const TextStyle(color: Colors.black54),
+      ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -56,6 +71,20 @@ class MyApp extends StatelessWidget {
         onBackground: Colors.white,
       ),
       textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
+
+      inputDecorationTheme: const InputDecorationTheme(
+        // These are light, appropriate for dark mode backgrounds
+        labelStyle: TextStyle(color: Colors.white70),
+        hintStyle: TextStyle(color: Colors.white54),
+        floatingLabelStyle: TextStyle(color: Colors.white),
+
+        // Input text must be black for white input fields
+        prefixStyle: TextStyle(color: Colors.black),
+        suffixStyle: TextStyle(color: Colors.black),
+        helperStyle: TextStyle(color: Colors.black54),
+        counterStyle: TextStyle(color: Colors.black54),
+      ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: dark975,
         foregroundColor: Colors.white,
@@ -70,12 +99,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'STEM Mobile App',
       debugShowCheckedModeBanner: false,
+
       themeMode: ThemeMode.system,
       theme: _lightTheme,
       darkTheme: _darkTheme,
+
       routes: {
         '/': (context) => const AuthGate(),
         '/onboarding': (context) => const OnboardingPage(),
+        // Use the imported class name for the route
+        '/forgot-password': (context) => const ForgotPasswordPage(),
       },
       initialRoute: '/',
     );
@@ -97,6 +130,7 @@ class AuthGate extends StatelessWidget {
         }
 
         // User is signed in
+        // NOTE: We assume AppShell is correctly imported and available
         return const AppShell();
       },
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:stem_mobile_app/custom_colors.dart'; // REQUIRED for curiousBlue.shade900
 
 // Main pages that live under the bottom nav
 import 'pages/events_page.dart';
@@ -41,29 +42,47 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
+    // The scaffold background is set by the overall theme (dark975 in dark mode)
+    final Color appBackground = theme.scaffoldBackgroundColor;
+
+    // Determines the color for text/icons on the AppBar
+    final Color appBarForegroundColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : curiousBlue.shade900;
+
+    // Determines the secondary text color for the user's email
+    final Color secondaryTextColor = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.7) // Light text on deep blue background
+    // CHANGE: Use curiousBlue.shade900 explicitly in light mode for strong contrast
+        : curiousBlue.shade900;
+
     return Scaffold(
+      backgroundColor: appBackground, // Match the AuthPage's deep blue background
       appBar: AppBar(
+        // Match the background color to the deep blue scaffold background
+        backgroundColor: appBackground,
+        // Set the color for the icons (PopupMenuButton)
+        foregroundColor: appBarForegroundColor,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_title),
+            // Title text color
+            Text(_title, style: TextStyle(color: appBarForegroundColor)),
+            // Subtitle text color (the "banner" text)
             Text(
               'Signed in as $userEmail',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.7),
-                  ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: secondaryTextColor, // Now using the updated color logic
+              ),
             ),
           ],
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.menu),
+            icon: Icon(Icons.menu, color: appBarForegroundColor), // Ensure menu icon is adaptive
             onSelected: (value) async {
               switch (value) {
                 case 'create':
@@ -79,7 +98,7 @@ class _AppShellState extends State<AppShell> {
                   Navigator.pushNamed(context, '/about');
                   break;
                 case 'logout':
-                  // Close any keyboards/overlays
+                // Close any keyboards/overlays
                   FocusScope.of(context).unfocus();
 
                   // Sign out, then clear the stack to the Auth screen.
@@ -116,7 +135,9 @@ class _AppShellState extends State<AppShell> {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Container(
             decoration: BoxDecoration(
-              color: scheme.primary,
+              // CHANGE: Use the dark, bold blue (curiousBlue.shade900)
+              // to match the primary buttons on the AuthPage
+              color: curiousBlue.shade900,
               borderRadius: BorderRadius.circular(28),
               boxShadow: const [
                 BoxShadow(
@@ -178,6 +199,7 @@ class _NavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Icons are correctly set to white/white70 for contrast against the dark blue bar.
     final color = selected ? Colors.white : Colors.white70;
 
     return InkWell(
@@ -190,6 +212,7 @@ class _NavIcon extends StatelessWidget {
           vertical: 8,
         ),
         decoration: BoxDecoration(
+          // Background of the selected tab remains a white overlay on the dark blue
           color: selected ? Colors.white.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),

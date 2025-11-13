@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-
-// Import the event details page
-import 'event_details.dart'; // Make sure this path matches your file structure
+import 'package:stem_mobile_app/custom_colors.dart'; // REQUIRED for curiousBlue
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -26,8 +24,7 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _loadUserRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      final snap =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
+      final snap = await FirebaseFirestore.instance.collection("users").doc(uid).get();
       final role = snap.data()?["role"];
       print("🔥 Loaded user role: $role"); // debug log
       setState(() {
@@ -41,19 +38,34 @@ class _EventsPageState extends State<EventsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    // Adaptive color for AppBar text/icons (white in dark mode, dark blue in light mode)
+    final Color appBarForegroundColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : curiousBlue.shade900;
+
+    // Adaptive background color for the AppBar (deep blue in dark mode, white in light mode)
+    final Color appBarBackgroundColor = theme.scaffoldBackgroundColor;
+
+    // Accent color used for titles, chips, and buttons (always dark blue)
+    final Color accentColor = curiousBlue.shade900;
+
 
     if (_loadingRole) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return Scaffold(
+      // Ensure the scaffold background is the theme's default (dark975 or white)
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
         title: const Text("STEM Events"),
-        backgroundColor: scheme.primary,
-        foregroundColor: Colors.white,
+        // CHANGE: Use adaptive colors for AppBar
+        backgroundColor: appBarBackgroundColor,
+        foregroundColor: appBarForegroundColor,
         actions: [
           // ✅ Seeder stays in AppBar
           IconButton(
@@ -90,8 +102,7 @@ class _EventsPageState extends State<EventsPage> {
             padding: const EdgeInsets.all(16),
             itemCount: events.length,
             itemBuilder: (context, index) {
-              final doc = events[index]; // Get the document
-              final data = doc.data() as Map<String, dynamic>;
+              final data = events[index].data() as Map<String, dynamic>;
 
               final title = data["title"] ?? "Untitled Event";
               final description = data["description"] ?? "No description";
@@ -107,85 +118,81 @@ class _EventsPageState extends State<EventsPage> {
                 } catch (_) {}
               }
 
+              // Determine card background color based on theme
+              final cardBackgroundColor = theme.brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.05) // Subtle dark gray
+                  : Colors.white; // White in light mode
+
               return Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 4,
-                child: InkWell(
-                  // ✅ THIS IS THE KEY PART - Makes the card tappable
-                  onTap: () {
-                    // Navigate to EventDetailsPage when card is tapped
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EventDetailsPage(
-                          eventId: doc.id, // Pass the document ID
-                          eventData: data, // Pass all the event data
-                        ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          scheme.primary.withOpacity(0.12),
-                          scheme.secondary.withOpacity(0.12),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: scheme.primary,
-                                  ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 16),
-                            const SizedBox(width: 6),
-                            Text(formattedDate),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
-                            const SizedBox(width: 6),
-                            Expanded(child: Text(location)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          description,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          children: topics
-                              .map((t) => Chip(
-                                    label: Text(t),
-                                    backgroundColor: scheme.secondaryContainer,
-                                  ))
-                              .toList(),
-                        ),
+                color: cardBackgroundColor, // Set base card color
+                child: Container(
+                  decoration: BoxDecoration(
+                    // CHANGE: Use curiousBlue.shade900 for the accent gradient
+                    gradient: LinearGradient(
+                      colors: [
+                        accentColor.withOpacity(0.04), // Dark blue hint
+                        accentColor.withOpacity(0.01), // Lighter dark blue hint
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          // CHANGE: Use the dark accent color for titles
+                          color: accentColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          // Ensure icons use primary color for consistency
+                          Icon(Icons.calendar_today, size: 16, color: scheme.primary),
+                          const SizedBox(width: 6),
+                          Text(formattedDate),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          // Ensure icons use primary color for consistency
+                          Icon(Icons.location_on, size: 16, color: scheme.primary),
+                          const SizedBox(width: 6),
+                          Expanded(child: Text(location)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        children: topics
+                            .map((t) => Chip(
+                          label: Text(t),
+                          // CHANGE: Use the dark accent color for chip background
+                          backgroundColor: accentColor,
+                          // Set chip text to white for contrast
+                          labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                        ))
+                            .toList(),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -197,12 +204,15 @@ class _EventsPageState extends State<EventsPage> {
       // ✅ FAB at bottom right — only for mentors/educators
       floatingActionButton: (userRole == "mentor" || userRole == "educator")
           ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.pushNamed(context, '/create-event');
-              },
-              icon: const Icon(Icons.add),
-              label: const Text("Create Event"),
-            )
+        onPressed: () {
+          Navigator.pushNamed(context, '/create-event');
+        },
+        icon: const Icon(Icons.add),
+        label: const Text("Create Event"),
+        // CHANGE: Set FAB color explicitly to the dark accent color
+        backgroundColor: accentColor,
+        foregroundColor: Colors.white,
+      )
           : null,
     );
   }
