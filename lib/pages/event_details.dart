@@ -385,8 +385,7 @@ class EventDetailsPage extends StatelessWidget {
 //
 // ALTERNATIVES:
 // - Make it a ListTile for built-in tap handling
-// - Add onTap callback to make rows interactive
-// - Add copyable text (long press to copy)
+
 // - Add different styles for different types of info
 // ============================================================
 class _InfoRow extends StatelessWidget {
