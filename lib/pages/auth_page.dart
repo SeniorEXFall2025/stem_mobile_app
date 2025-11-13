@@ -292,7 +292,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
               const SizedBox(height: 10),
 
-              // Forgot Password Link (aligned right, now adaptive color)
+              // Forgot Password link (aligned right, now adaptive color)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -301,7 +301,7 @@ class _AuthPageState extends State<AuthPage> {
                     Navigator.pushNamed(context, '/forgot-password');
                   },
                   child: Text(
-                    "Forgot Password Link",
+                    "Forgot Password",
                     // UPDATED: Use the adaptive linkTextColor
                     style: TextStyle(color: linkTextColor, fontSize: 14),
                   ),
