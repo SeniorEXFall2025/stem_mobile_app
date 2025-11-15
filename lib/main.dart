@@ -7,6 +7,8 @@ import 'package:stem_mobile_app/pages/onboarding_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
+import 'package:stem_mobile_app/pages/about_page.dart';
+import 'package:stem_mobile_app/pages/create_event_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +36,6 @@ class MyApp extends StatelessWidget {
         onBackground: Colors.black,
       ),
       textTheme: GoogleFonts.dmSansTextTheme(),
-
       inputDecorationTheme: InputDecorationTheme(
         // Controls the color of the text the user types (making labels darker)
         labelStyle: TextStyle(color: curiousBlue.shade900),
@@ -47,7 +48,6 @@ class MyApp extends StatelessWidget {
         helperStyle: const TextStyle(color: Colors.black54),
         counterStyle: const TextStyle(color: Colors.black54),
       ),
-
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -71,7 +71,6 @@ class MyApp extends StatelessWidget {
         onBackground: Colors.white,
       ),
       textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
-
       inputDecorationTheme: const InputDecorationTheme(
         // These are light, appropriate for dark mode backgrounds
         labelStyle: TextStyle(color: Colors.white70),
@@ -80,11 +79,10 @@ class MyApp extends StatelessWidget {
 
         // Input text must be black for white input fields
         prefixStyle: TextStyle(color: Colors.black),
-        suffixStyle: TextStyle(color: Colors.black),
+        suffixStyle: TextStyle(color: Colors.black54),
         helperStyle: TextStyle(color: Colors.black54),
         counterStyle: TextStyle(color: Colors.black54),
       ),
-
       appBarTheme: const AppBarTheme(
         backgroundColor: dark975,
         foregroundColor: Colors.white,
@@ -104,13 +102,29 @@ class MyApp extends StatelessWidget {
       theme: _lightTheme,
       darkTheme: _darkTheme,
 
+      // Named routes used throughout the app
       routes: {
+        // Root gate (decides between auth flow vs app shell)
         '/': (context) => const AuthGate(),
+
+        // Auth / login flow
+        '/auth': (context) => const AuthGate(),
         '/onboarding': (context) => const OnboardingPage(),
-        // Use the imported class name for the route
         '/forgot-password': (context) => const ForgotPasswordPage(),
+
+        // App pages
+        '/about': (context) => const AboutPage(),
+        '/create-event': (context) => const CreateEventPage(),
       },
+
       initialRoute: '/',
+
+      // Fallback for unknown routes
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => const AuthGate(),
+        );
+      },
     );
   }
 }
@@ -130,7 +144,6 @@ class AuthGate extends StatelessWidget {
         }
 
         // User is signed in
-        // NOTE: We assume AppShell is correctly imported and available
         return const AppShell();
       },
     );
