@@ -25,9 +25,10 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _loadUserRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      final snap = await FirebaseFirestore.instance.collection("users").doc(uid).get();
+      final snap =
+          await FirebaseFirestore.instance.collection("users").doc(uid).get();
       final role = snap.data()?["role"];
-      print("🔥 Loaded user role: $role"); // debug log
+      print("Loaded user role: $role"); // debug log
       setState(() {
         userRole = role?.toString().toLowerCase();
         _loadingRole = false;
@@ -59,26 +60,15 @@ class _EventsPageState extends State<EventsPage> {
     // Accent color used for titles, chips, and buttons (always dark blue)
     final Color accentColor = curiousBlue.shade900;
 
-
     return Scaffold(
       // Ensure the scaffold background is the theme's default (dark975 or white)
       backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("STEM Events"),
-        // CHANGE: Use adaptive colors for AppBar
+        // Use adaptive colors for AppBar
         backgroundColor: appBarBackgroundColor,
         foregroundColor: appBarForegroundColor,
-        actions: [
-          // ✅ Seeder stays in AppBar
-          IconButton(
-            icon: const Icon(Icons.science),
-            tooltip: "Seed Sample Events",
-            onPressed: () {
-              Navigator.pushNamed(context, '/seed');
-            },
-          ),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -93,7 +83,7 @@ class _EventsPageState extends State<EventsPage> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                "🚀 No events available yet.\nGo to the SeederPage to add some!",
+                "No events available yet.",
                 textAlign: TextAlign.center,
               ),
             );
@@ -133,10 +123,10 @@ class _EventsPageState extends State<EventsPage> {
                 ),
                 elevation: 4,
                 color: cardBackgroundColor, // Set base card color
-                // 1. Wrap content in InkWell for tapping
+                // Wrap content in InkWell for tapping
                 child: InkWell(
                   onTap: () {
-                    // 2. Navigate and pass event details
+                    // Navigate and pass event details
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -150,11 +140,12 @@ class _EventsPageState extends State<EventsPage> {
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     decoration: BoxDecoration(
-                      // CHANGE: Use curiousBlue.shade900 for the accent gradient
+                      // Use curiousBlue.shade900 for the accent gradient
                       gradient: LinearGradient(
                         colors: [
                           accentColor.withOpacity(0.04), // Dark blue hint
-                          accentColor.withOpacity(0.01), // Lighter dark blue hint
+                          accentColor
+                              .withOpacity(0.01), // Lighter dark blue hint
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -167,17 +158,19 @@ class _EventsPageState extends State<EventsPage> {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            // CHANGE: Use the dark accent color for titles
-                            color: accentColor,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    // Use the dark accent color for titles
+                                    color: accentColor,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             // Ensure icons use primary color for consistency
-                            Icon(Icons.calendar_today, size: 16, color: scheme.primary),
+                            Icon(Icons.calendar_today,
+                                size: 16, color: scheme.primary),
                             const SizedBox(width: 6),
                             Text(formattedDate),
                           ],
@@ -186,7 +179,8 @@ class _EventsPageState extends State<EventsPage> {
                         Row(
                           children: [
                             // Ensure icons use primary color for consistency
-                            Icon(Icons.location_on, size: 16, color: scheme.primary),
+                            Icon(Icons.location_on,
+                                size: 16, color: scheme.primary),
                             const SizedBox(width: 6),
                             Expanded(child: Text(location)),
                           ],
@@ -202,13 +196,18 @@ class _EventsPageState extends State<EventsPage> {
                         Wrap(
                           spacing: 6,
                           children: topics
-                              .map((t) => Chip(
-                            label: Text(t),
-                            // CHANGE: Use the dark accent color for chip background
-                            backgroundColor: accentColor,
-                            // Set chip text to white for contrast
-                            labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                          ))
+                              .map(
+                                (t) => Chip(
+                                  label: Text(t),
+                                  // Use the dark accent color for chip background
+                                  backgroundColor: accentColor,
+                                  // Set chip text to white for contrast
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                       ],
@@ -221,18 +220,18 @@ class _EventsPageState extends State<EventsPage> {
         },
       ),
 
-      // ✅ FAB at bottom right — only for mentors/educators
-      floatingActionButton: (userRole == "mentor" || userRole == "educator")
+      // FAB at bottom right — only for mentors
+      floatingActionButton: (userRole == "mentor")
           ? FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/create-event');
-        },
-        icon: const Icon(Icons.add),
-        label: const Text("Create Event"),
-        // CHANGE: Set FAB color explicitly to the dark accent color
-        backgroundColor: accentColor,
-        foregroundColor: Colors.white,
-      )
+              onPressed: () {
+                Navigator.pushNamed(context, '/create-event');
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Create Event"),
+              // Set FAB color explicitly to the dark accent color
+              backgroundColor: accentColor,
+              foregroundColor: Colors.white,
+            )
           : null,
     );
   }

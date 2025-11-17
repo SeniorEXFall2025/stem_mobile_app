@@ -9,6 +9,9 @@ import '../app_shell.dart';
 ///
 /// After we save, we optimistically jump into the app (AppShell),
 /// and let the profile stream in main.dart keep us synced.
+///
+/// When this page is opened from Settings later, we let the user
+/// change their interests but keep the original role locked.
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -22,8 +25,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _saving = false;
   String _error = '';
 
-  // Only two roles for now.
+  // Once a role is set, we keep it locked when editing interests later.
+  bool _roleLocked = false;
+
+  // Display roles shown as chips.
   final List<String> _roles = const ['Student', 'Mentor/Educator'];
+
+  // Map from display label -> stored code in Firestore.
+  final Map<String, String> _roleMap = const {
+    'Student': 'student',
+    'Mentor/Educator': 'mentor',
+  };
 
   // Starter list — we can expand this anytime.
   final List<String> _interests = const [
@@ -35,9 +47,71 @@ class _OnboardingPageState extends State<OnboardingPage> {
     'Coding',
   ];
 
-  /// Save role + interests. We wait for local pending writes to flush,
-  /// then jump straight into the app. This avoids a brief “spinner limbo”
-  /// when the profile stream is a little slow to deliver the first doc.
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingProfile();
+  }
+
+  /// Load any existing profile so:
+  /// - first-time users see empty role + interests
+  /// - returning users see their current role (locked) and interests selected
+  Future<void> _loadExistingProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!snap.exists) return;
+
+      final data = snap.data(); // already Map<String, dynamic>?
+
+      if (data == null) return;
+
+      final storedRole = data['role'];
+      final storedInterests = data['interests'];
+
+      String? displayRole;
+
+      if (storedRole is String) {
+        switch (storedRole) {
+          case 'student':
+            displayRole = 'Student';
+            break;
+          case 'mentor':
+          case 'educator':
+            displayRole = 'Mentor/Educator';
+            break;
+        }
+      }
+
+      setState(() {
+        if (displayRole != null) {
+          _selectedRole = displayRole;
+          _roleLocked = true; // role already set, keep it locked
+        }
+
+        if (storedInterests is List) {
+          // Only keep interests that are in our current list and are strings
+          _selectedInterests.addAll(
+            storedInterests
+                .whereType<String>()
+                .where((i) => _interests.contains(i)),
+          );
+        }
+      });
+    } catch (_) {
+      // If this fails, onboarding still works; the user can just fill it out.
+    }
+  }
+
+  /// Save role + interests. For first-time users this sets both.
+  /// For users editing via Settings, roleLocked prevents role from changing,
+  /// so this mainly updates interests.
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -49,7 +123,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     // Basic validation.
     if (_selectedRole == null || _selectedInterests.isEmpty) {
-      setState(() => _error = 'Let’s pick a role and at least one interest.');
+      setState(() => _error = 'Pick a role and at least one interest.');
       return;
     }
 
@@ -59,9 +133,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
 
     try {
-      // Upsert the profile.
+      // Translate display label back to the stored code.
+      final roleValue = _roleMap[_selectedRole] ?? _selectedRole;
+
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'role': _selectedRole,
+        'role': roleValue,
         'interests': _selectedInterests.toList(),
         'updatedAt': FieldValue.serverTimestamp(),
         'email': user.email, // handy for debugging in the console
@@ -70,32 +146,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
       // Make sure any local pending writes are flushed before we navigate.
       await FirebaseFirestore.instance.waitForPendingWrites();
 
-      // Small toast so we know it worked.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Profile saved for ${user.email ?? 'our account'}'),
+            content: Text('Profile saved for ${user.email ?? 'this account'}'),
             duration: const Duration(seconds: 2),
           ),
         );
       }
 
-      // 🚀 Optimistic jump straight into the app shell.
+      // Jump straight into the app shell.
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AppShell()),
         (route) => false,
       );
-
-      // (If you ever want to route back through '/', swap the nav above for:)
-      // Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } catch (e) {
-      // Show the error both inline and as a toast.
       if (mounted) {
-        setState(() => _error = 'Couldn’t save our profile: $e');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+        setState(() => _error = 'Couldn’t save profile: $e');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Save failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -148,10 +218,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       label: Text(role),
                       selected: selected,
                       selectedColor: scheme.secondary.withOpacity(0.30),
-                      onSelected: (_) => setState(() => _selectedRole = role),
+                      // If role is locked, disable tap handling
+                      onSelected: _roleLocked
+                          ? null
+                          : (_) => setState(() => _selectedRole = role),
                     );
                   }).toList(),
                 ),
+                if (_roleLocked) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Role is set for this account. Use Edit interests to update topics.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 30),
 
