@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Displays two lists of events:
-/// - "Saved" → Events the user bookmarked
-/// - "Registered" → Events the user signed up for
-/// Uses TabBar + TabBarView to switch between them.
+import 'event_details.dart';
+
+/// Favorites screen lives under the bottom nav.
+/// It has two tabs:
+///  - Saved      → events the user bookmarked with the star icon
+///  - Registered → events the user registered for from the details page
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Two tabs total
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Favorites'),
-          // The TabBar automatically appears below the AppBar title
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Saved'),
@@ -22,49 +25,202 @@ class FavoritesPage extends StatelessWidget {
             ],
           ),
         ),
-        // Each tab below corresponds to one of the tabs above
-        body: const TabBarView(children: [_SavedTab(), _RegisteredTab()]),
+        body: const TabBarView(
+          children: [
+            _SavedTab(),
+            _RegisteredTab(),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Temporary widget for the "Saved" tab.
-/// Later, this will display the user's bookmarked events.
+/// Shows the events the user has saved (bookmarked).
+/// Data is stored under:
+///   users/{uid}/favorites/{eventId}
 class _SavedTab extends StatelessWidget {
   const _SavedTab();
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        ListTile(
-          leading: Icon(Icons.bookmark),
-          title: Text('Saved Event (Placeholder)'),
-          subtitle: Text('Bookmarked events will appear here later.'),
-        ),
-      ],
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Center(
+        child: Text('Sign in to save events.'),
+      );
+    }
+
+    final favoritesStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('favorites')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: favoritesStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No saved events yet.\nTap the star on an event to save it.',
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final eventData =
+                Map<String, dynamic>.from(data['eventData'] ?? {});
+            final eventId = (data['eventId'] as String?) ?? doc.id;
+
+            final title = eventData['title'] ?? 'Untitled event';
+            final city = eventData['city'] ?? 'No city';
+            final dateStr = eventData['date'] as String?;
+            String dateLabel = 'Date TBD';
+
+            if (dateStr != null) {
+              try {
+                final dt = DateTime.parse(dateStr);
+                dateLabel =
+                    '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+              } catch (_) {
+                // If parsing fails, leave the default
+              }
+            }
+
+            return Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                title: Text(title),
+                subtitle: Text('$dateLabel • $city'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EventDetailsPage(
+                        eventId: eventId,
+                        eventData: eventData,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
 
-/// Temporary widget for the "Registered" tab.
-/// Later, this will show events the user has registered for.
+/// Shows the events the user has registered for.
+/// Data is stored under:
+///   users/{uid}/registrations/{eventId}
 class _RegisteredTab extends StatelessWidget {
   const _RegisteredTab();
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        ListTile(
-          leading: Icon(Icons.event_available),
-          title: Text('Registered Event (Placeholder)'),
-          subtitle: Text('Your registered events will appear here later.'),
-        ),
-      ],
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Center(
+        child: Text('Sign in to register for events.'),
+      );
+    }
+
+    final registrationsStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('registrations')
+        .orderBy('registeredAt', descending: true)
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: registrationsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'You have not registered for any events yet.',
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final eventData =
+                Map<String, dynamic>.from(data['eventData'] ?? {});
+            final eventId = (data['eventId'] as String?) ?? doc.id;
+
+            final title = eventData['title'] ?? 'Untitled event';
+            final city = eventData['city'] ?? 'No city';
+            final dateStr = eventData['date'] as String?;
+            String dateLabel = 'Date TBD';
+
+            if (dateStr != null) {
+              try {
+                final dt = DateTime.parse(dateStr);
+                dateLabel =
+                    '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+              } catch (_) {
+                // If parsing fails, leave the default
+              }
+            }
+
+            return Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.event_available),
+                title: Text(title),
+                subtitle: Text('$dateLabel • $city'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EventDetailsPage(
+                        eventId: eventId,
+                        eventData: eventData,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

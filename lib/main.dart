@@ -6,9 +6,11 @@ import 'package:stem_mobile_app/app_shell.dart';
 import 'package:stem_mobile_app/pages/onboarding_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
 import 'package:stem_mobile_app/pages/about_page.dart';
 import 'package:stem_mobile_app/pages/create_event_page.dart';
+import 'theme_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,10 +21,10 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // NOTE: Assuming curiousBlue and dark975 are correctly defined in custom_colors.dart
+  // assuming curiousBlue and dark975 are defined in custom_colors.dart
   final Color _seedColor = curiousBlue;
 
-  // Light Theme Configuration
+  // light theme
   ThemeData get _lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -37,12 +39,9 @@ class MyApp extends StatelessWidget {
       ),
       textTheme: GoogleFonts.dmSansTextTheme(),
       inputDecorationTheme: InputDecorationTheme(
-        // Controls the color of the text the user types (making labels darker)
         labelStyle: TextStyle(color: curiousBlue.shade900),
         hintStyle: TextStyle(color: Colors.grey.shade900),
         floatingLabelStyle: TextStyle(color: curiousBlue.shade900),
-
-        // Ensure input text itself is black regardless of field color
         prefixStyle: const TextStyle(color: Colors.black),
         suffixStyle: const TextStyle(color: Colors.black),
         helperStyle: const TextStyle(color: Colors.black54),
@@ -57,7 +56,7 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  // Dark Theme Configuration
+  // dark theme
   ThemeData get _darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -72,14 +71,11 @@ class MyApp extends StatelessWidget {
       ),
       textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
       inputDecorationTheme: const InputDecorationTheme(
-        // These are light, appropriate for dark mode backgrounds
         labelStyle: TextStyle(color: Colors.white70),
         hintStyle: TextStyle(color: Colors.white54),
         floatingLabelStyle: TextStyle(color: Colors.white),
-
-        // Input text must be black for white input fields
         prefixStyle: TextStyle(color: Colors.black),
-        suffixStyle: TextStyle(color: Colors.black54),
+        suffixStyle: TextStyle(color: Colors.black),
         helperStyle: TextStyle(color: Colors.black54),
         counterStyle: TextStyle(color: Colors.black54),
       ),
@@ -94,42 +90,49 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'STEM Mobile App',
-      debugShowCheckedModeBanner: false,
+    // listen for theme changes from ThemeController
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.themeMode,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'STEM Mobile App',
+          debugShowCheckedModeBanner: false,
 
-      themeMode: ThemeMode.system,
-      theme: _lightTheme,
-      darkTheme: _darkTheme,
+          themeMode: mode,
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
 
-      // Named routes used throughout the app
-      routes: {
-        // Root gate (decides between auth flow vs app shell)
-        '/': (context) => const AuthGate(),
+          // named routes used throughout the app
+          routes: {
+            // root gate (decides between auth flow vs app shell)
+            '/': (context) => const AuthGate(),
 
-        // Auth / login flow
-        '/auth': (context) => const AuthGate(),
-        '/onboarding': (context) => const OnboardingPage(),
-        '/forgot-password': (context) => const ForgotPasswordPage(),
+            // auth / login flow
+            '/auth': (context) => const AuthGate(),
+            '/onboarding': (context) => const OnboardingPage(),
+            '/forgot-password': (context) => const ForgotPasswordPage(),
 
-        // App pages
-        '/about': (context) => const AboutPage(),
-        '/create-event': (context) => const CreateEventPage(),
-      },
+            // app pages
+            '/about': (context) => const AboutPage(),
+            '/create-event': (context) => const CreateEventPage(),
+          },
 
-      initialRoute: '/',
+          initialRoute: '/',
 
-      // Fallback for unknown routes
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) => const AuthGate(),
+          // fallback for unknown routes
+          onUnknownRoute: (settings) {
+            return MaterialPageRoute(
+              builder: (context) => const AuthGate(),
+            );
+          },
         );
       },
     );
   }
 }
 
-/// The Auth Gate determines whether to show the AuthPage or the AppShell.
+/// the auth gate determines whether to show the AuthPage,
+/// the OnboardingPage, or the AppShell.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -137,14 +140,56 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          // User is not signed in
+      builder: (context, authSnap) {
+        if (authSnap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = authSnap.data;
+
+        // no one is signed in -> show auth screen
+        if (user == null) {
           return const AuthPage();
         }
 
-        // User is signed in
-        return const AppShell();
+        // user is signed in. now check their profile in Firestore.
+        final docStream = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .snapshots();
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: docStream,
+          builder: (context, profileSnap) {
+            if (profileSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            // if there is no profile document yet, send them to onboarding
+            if (!profileSnap.hasData || !profileSnap.data!.exists) {
+              return const OnboardingPage();
+            }
+
+            final data =
+                profileSnap.data!.data() as Map<String, dynamic>? ?? {};
+            final role = data['role'];
+            final interests = (data['interests'] ?? []) as List;
+
+            final bool profileIncomplete = role == null || interests.isEmpty;
+
+            if (profileIncomplete) {
+              // signed in but missing role or interests -> onboarding
+              return const OnboardingPage();
+            }
+
+            // signed in and profile looks complete -> main app shell
+            return const AppShell();
+          },
+        );
       },
     );
   }

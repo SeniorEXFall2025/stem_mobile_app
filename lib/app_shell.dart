@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:stem_mobile_app/custom_colors.dart'; // REQUIRED for curiousBlue.shade900
+import 'package:stem_mobile_app/custom_colors.dart';
 
-// Main pages that live under the bottom nav
+// main pages that live under the bottom nav
 import 'pages/events_page.dart';
 import 'pages/map_page.dart';
 import 'pages/favorites_page.dart';
@@ -25,100 +25,77 @@ class _AppShellState extends State<AppShell> {
     SettingsPage(),
   ];
 
-  String get _title {
-    switch (_index) {
-      case 0:
-        return 'Home';
-      case 1:
-        return 'Map';
-      case 2:
-        return 'Favorites';
-      case 3:
-        return 'Settings';
-      default:
-        return 'STEM';
-    }
-  }
+  // app title shown in the top bar
+  String get _appTitle => 'CO STEM Ecosystem';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-    // The scaffold background is set by the overall theme (dark975 in dark mode)
+    // scaffold background comes from the active theme (dark or light)
     final Color appBackground = theme.scaffoldBackgroundColor;
 
-    // Determines the color for text/icons on the AppBar
+    // color for icons/text in the app bar
     final Color appBarForegroundColor = theme.brightness == Brightness.dark
         ? Colors.white
         : curiousBlue.shade900;
 
-    // Determines the secondary text color for the user's email
+    // slightly softer color for the "signed in as" subtitle
     final Color secondaryTextColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.7) // Light text on deep blue background
-    // CHANGE: Use curiousBlue.shade900 explicitly in light mode for strong contrast
+        ? Colors.white.withOpacity(0.7)
         : curiousBlue.shade900;
 
     return Scaffold(
-      backgroundColor: appBackground, // Match the AuthPage's deep blue background
+      backgroundColor: appBackground,
       appBar: AppBar(
-        // Match the background color to the deep blue scaffold background
         backgroundColor: appBackground,
-        // Set the color for the icons (PopupMenuButton)
         foregroundColor: appBarForegroundColor,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title text color
-            Text(_title, style: TextStyle(color: appBarForegroundColor)),
-            // Subtitle text color (the "banner" text)
+            // app name (same on every tab)
+            Text(
+              _appTitle,
+              style: TextStyle(color: appBarForegroundColor),
+            ),
+            // signed in banner
             Text(
               'Signed in as $userEmail',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: secondaryTextColor, // Now using the updated color logic
+                color: secondaryTextColor,
               ),
             ),
           ],
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.menu, color: appBarForegroundColor), // Ensure menu icon is adaptive
+            icon: Icon(Icons.menu, color: appBarForegroundColor),
             onSelected: (value) async {
               switch (value) {
-                case 'create':
-                  if (!mounted) return;
-                  Navigator.pushNamed(context, '/create-event');
-                  break;
-                case 'interests':
-                  if (!mounted) return;
-                  Navigator.pushNamed(context, '/onboarding');
-                  break;
                 case 'about':
                   if (!mounted) return;
                   Navigator.pushNamed(context, '/about');
                   break;
                 case 'logout':
-                // Close any keyboards/overlays
+                  // close any keyboards/overlays
                   FocusScope.of(context).unfocus();
 
-                  // Sign out, then clear the stack to the Auth screen.
+                  // sign out, then clear the stack to the auth screen
                   await FirebaseAuth.instance.signOut();
 
                   if (!context.mounted) return;
 
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/auth', (route) => false);
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/auth', (route) => false);
                   break;
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(value: 'create', child: Text('Create Event')),
               const PopupMenuItem(
-                value: 'interests',
-                child: Text('Edit Interests'),
+                value: 'about',
+                child: Text('About'),
               ),
-              const PopupMenuItem(value: 'about', child: Text('About')),
               const PopupMenuDivider(),
               PopupMenuItem(
                 value: 'logout',
@@ -135,8 +112,6 @@ class _AppShellState extends State<AppShell> {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Container(
             decoration: BoxDecoration(
-              // CHANGE: Use the dark, bold blue (curiousBlue.shade900)
-              // to match the primary buttons on the AuthPage
               color: curiousBlue.shade900,
               borderRadius: BorderRadius.circular(28),
               boxShadow: const [
@@ -199,7 +174,6 @@ class _NavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Icons are correctly set to white/white70 for contrast against the dark blue bar.
     final color = selected ? Colors.white : Colors.white70;
 
     return InkWell(
@@ -212,7 +186,6 @@ class _NavIcon extends StatelessWidget {
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          // Background of the selected tab remains a white overlay on the dark blue
           color: selected ? Colors.white.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),

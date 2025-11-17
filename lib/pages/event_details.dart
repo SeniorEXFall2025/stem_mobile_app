@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:stem_mobile_app/custom_colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ============================================================
 // EVENT DETAILS PAGE
 // ============================================================
-// This page displays comprehensive information about a single event
-// when a user taps on an event card from the events list.
+// This page displays all the information for a single event.
+// It also lets the user:
+// - save the event to Favorites (star icon)
+// - register / unregister for the event (button at the bottom)
+// Both of those are stored under the current user in Firestore:
+//   users/{uid}/favorites/{eventId}
+//   users/{uid}/registrations/{eventId}
 // ============================================================
 
-class EventDetailsPage extends StatelessWidget {
+class EventDetailsPage extends StatefulWidget {
   final String eventId;
   final Map<String, dynamic> eventData;
 
@@ -20,55 +27,201 @@ class EventDetailsPage extends StatelessWidget {
   });
 
   @override
+  State<EventDetailsPage> createState() => _EventDetailsPageState();
+}
+
+class _EventDetailsPageState extends State<EventDetailsPage> {
+  bool _isFavorite = false;
+  bool _isRegistered = false;
+  bool _busyFavorite = false;
+  bool _busyRegister = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialStates();
+  }
+
+  Future<void> _loadInitialStates() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      final favSnap =
+          await userDoc.collection('favorites').doc(widget.eventId).get();
+      final regSnap =
+          await userDoc.collection('registrations').doc(widget.eventId).get();
+
+      if (!mounted) return;
+
+      setState(() {
+        _isFavorite = favSnap.exists;
+        _isRegistered = regSnap.exists;
+      });
+    } catch (_) {
+      // If this fails, we just leave the defaults (not saved / not registered).
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('You need to be signed in to save events.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _busyFavorite = true;
+    });
+
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final favRef = userDoc.collection('favorites').doc(widget.eventId);
+
+      if (_isFavorite) {
+        await favRef.delete();
+        if (!mounted) return;
+        setState(() {
+          _isFavorite = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Removed from saved events.')),
+        );
+      } else {
+        // Store the event snapshot so FavoritesPage can display it nicely
+        await favRef.set({
+          'eventId': widget.eventId,
+          'eventData': widget.eventData,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        if (!mounted) return;
+        setState(() {
+          _isFavorite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Saved to your favorites.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update favorites: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busyFavorite = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleRegistration() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You need to be signed in to register.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _busyRegister = true;
+    });
+
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final regRef = userDoc.collection('registrations').doc(widget.eventId);
+
+      if (_isRegistered) {
+        // Let the user unregister if they tap again
+        await regRef.delete();
+        if (!mounted) return;
+        setState(() {
+          _isRegistered = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You are no longer registered.')),
+        );
+      } else {
+        await regRef.set({
+          'eventId': widget.eventId,
+          'eventData': widget.eventData,
+          'registeredAt': FieldValue.serverTimestamp(),
+        });
+
+        if (!mounted) return;
+        setState(() {
+          _isRegistered = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registered for this event.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update registration: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busyRegister = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final Color accentColor = curiousBlue.shade900;
 
-    // Adaptive color for AppBar text/icons (white in dark mode, dark blue in light mode)
-    final Color appBarForegroundColor = theme.brightness == Brightness.dark
-        ? Colors.white
-        : accentColor;
-
-    // Adaptive background color for the AppBar (deep blue in dark mode, white in light mode)
+    // AppBar colors stay adaptive
+    final Color appBarForegroundColor =
+        theme.brightness == Brightness.dark ? Colors.white : accentColor;
     final Color appBarBackgroundColor = theme.scaffoldBackgroundColor;
 
+    // Pull fields out of the event data
+    final title = widget.eventData["title"] ?? "Untitled Event";
+    final description =
+        widget.eventData["description"] ?? "No description available";
+    final dateStr = widget.eventData["date"]; // Can be null
+    final location = widget.eventData["city"] ?? "No location specified";
+    final topics = List<String>.from(widget.eventData["topics"] ?? []);
+    final organizer = widget.eventData["organizer"] ?? "Unknown";
+    final capacity = widget.eventData["capacity"]; // Can be null
+    final String? requirements =
+        (widget.eventData["requirements"] as String?)?.trim();
 
-    // ============================================================
-    // DATA EXTRACTION SECTION
-    // ============================================================
-    final title = eventData["title"] ?? "Untitled Event";
-    final description = eventData["description"] ?? "No description available";
-    final dateStr = eventData["date"]; // Can be null
-    final location = eventData["city"] ?? "No location specified";
-    final topics = List<String>.from(eventData["topics"] ?? []);
-    final organizer = eventData["organizer"] ?? "Unknown";
-    final capacity = eventData["capacity"]; // Can be null
-    final requirements = eventData["requirements"] ?? "None";
-
-    // ============================================================
-    // DATE FORMATTING SECTION
-    // ============================================================
+    // Format the date/time from the ISO string we store in Firestore
     String formattedDate = dateStr ?? "TBD";
     String formattedTime = "";
     if (dateStr != null) {
       try {
         final parsedDate = DateTime.parse(dateStr);
-        formattedDate =
-            DateFormat.yMMMEd().format(parsedDate); // "Fri, Nov 15, 2025"
-        formattedTime = DateFormat.jm().format(parsedDate); // "3:30 PM"
+        formattedDate = DateFormat.yMMMEd().format(parsedDate);
+        formattedTime = DateFormat.jm().format(parsedDate);
       } catch (_) {
-        // If date parsing fails, keep the default "TBD"
+        // If parsing fails, leave it as "TBD"
       }
     }
 
+    final String registerLabel =
+        _isRegistered ? "Registered" : "Register for Event";
+
     return Scaffold(
-      // ============================================================
-      // APP BAR - Use adaptive colors
-      // ============================================================
       appBar: AppBar(
         title: const Text("Event Details"),
-        // 3. APPLY ADAPTIVE COLORS
         backgroundColor: appBarBackgroundColor,
         foregroundColor: appBarForegroundColor,
         actions: [
@@ -76,36 +229,30 @@ class EventDetailsPage extends StatelessWidget {
             icon: const Icon(Icons.share),
             tooltip: "Share Event",
             onPressed: () {
-              // Implement share functionality
+              // Someone else on the team wants to handle sharing later.
             },
           ),
           IconButton(
-            icon: const Icon(Icons.star_border),
-            tooltip: "Favorite Event",
-            onPressed: () {
-              // Implement favorite functionality
-            },
+            icon: Icon(
+              _isFavorite ? Icons.star : Icons.star_border,
+            ),
+            tooltip:
+                _isFavorite ? "Remove from saved events" : "Save to favorites",
+            onPressed: _busyFavorite ? null : _toggleFavorite,
           ),
         ],
       ),
-
-      // ============================================================
-      // BODY - SCROLLABLE CONTENT
-      // ============================================================
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ============================================================
-            // HERO IMAGE SECTION - Use accent color gradient
-            // ============================================================
+            // Top banner with event icon
             Container(
               width: double.infinity,
               height: 200,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    // 4. USE ACCENT COLOR IN GRADIENT
                     accentColor.withOpacity(0.8),
                     accentColor.withOpacity(0.6),
                   ],
@@ -122,38 +269,29 @@ class EventDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // ============================================================
-            // MAIN CONTENT SECTION
-            // ============================================================
+            // Main content
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ============================================================
-                  // EVENT TITLE - Use accent color
-                  // ============================================================
+                  // Title
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      // 5. APPLY ACCENT COLOR TO TITLE
                       color: accentColor,
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // ============================================================
-                  // EVENT METADATA (Date, Time, Location, etc.)
-                  // ============================================================
+                  // Basic info rows
                   _InfoRow(
                     icon: Icons.calendar_today,
                     label: "Date",
                     value: formattedDate,
                     accentColor: accentColor,
                   ),
-
-                  // Only show time if it exists
                   if (formattedTime.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _InfoRow(
@@ -163,102 +301,107 @@ class EventDetailsPage extends StatelessWidget {
                       accentColor: accentColor,
                     ),
                   ],
-
                   const SizedBox(height: 12),
                   _InfoRow(
                     icon: Icons.location_on,
                     label: "Location",
                     value: location,
-                    accentColor: accentColor, // Pass accent color
+                    accentColor: accentColor,
                   ),
-
                   const SizedBox(height: 12),
                   _InfoRow(
                     icon: Icons.person,
                     label: "Organizer",
                     value: organizer,
-                    accentColor: accentColor, // Pass accent color
+                    accentColor: accentColor,
                   ),
-
-                  // Only show capacity if it exists
                   if (capacity != null) ...[
                     const SizedBox(height: 12),
                     _InfoRow(
                       icon: Icons.people,
                       label: "Capacity",
                       value: capacity.toString(),
-                      accentColor: accentColor, // Pass accent color
+                      accentColor: accentColor,
                     ),
                   ],
 
                   const SizedBox(height: 24),
-                  const Divider(), // Visual separator line
+                  const Divider(),
                   const SizedBox(height: 16),
 
-                  // ============================================================
-                  // EVENT DESCRIPTION SECTION
-                  // ============================================================
+                  // Description
                   Text(
                     "About This Event",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     description,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: theme.textTheme.bodyLarge,
                   ),
 
                   const SizedBox(height: 24),
 
-                  // ============================================================
-                  // TOPICS SECTION - Use accent color for chips
-                  // ============================================================
+                  // Optional requirements
+                  if (requirements != null && requirements.isNotEmpty) ...[
+                    Text(
+                      "Requirements",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      requirements,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Topics
                   if (topics.isNotEmpty) ...[
                     Text(
                       "Topics Covered",
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
-                      spacing: 8, // Space between chips horizontally
-                      runSpacing: 8, // Space between rows of chips
+                      spacing: 8,
+                      runSpacing: 8,
                       children: topics
-                          .map((topic) => Chip(
-                        label: Text(topic),
-                        // 6. APPLY ACCENT COLOR TO CHIP
-                        backgroundColor: accentColor,
-                        labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ))
+                          .map(
+                            (topic) => Chip(
+                              label: Text(topic),
+                              backgroundColor: accentColor,
+                              labelStyle: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                     const SizedBox(height: 24),
                   ],
 
-                  // ============================================================
-                  // REGISTER BUTTON - Use accent color
-                  // ============================================================
+                  // Register button
                   SizedBox(
-                    width: double.infinity, // Make button full width
+                    width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement registration logic
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Registration feature coming soon!"),
-                          ),
-                        );
-                      },
-                      label: const Text("Register for Event"),
+                      onPressed: _busyRegister ? null : _toggleRegistration,
+                      label: Text(registerLabel),
+                      icon: Icon(
+                        _isRegistered ? Icons.check : Icons.launch,
+                      ),
                       style: ElevatedButton.styleFrom(
-                        // 7. APPLY ACCENT COLOR TO BUTTON
                         backgroundColor: accentColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -278,54 +421,44 @@ class EventDetailsPage extends StatelessWidget {
   }
 }
 
-// ============================================================
-// CUSTOM INFO ROW WIDGET
-// ============================================================
-// Updated to accept and use the accentColor for icons
-// ============================================================
+// Simple row for icon + label + value
 class _InfoRow extends StatelessWidget {
-  final IconData icon; // The icon to display (e.g., Icons.calendar_today)
-  final String label; // The field name (e.g., "Date")
-  final String value; // The actual data (e.g., "Nov 15, 2025")
-  final Color accentColor; // The color passed from the parent widget
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accentColor;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
-    required this.accentColor, // Require the accent color
+    required this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Align items to top
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Icon on the left
-        // 8. USE ACCENT COLOR FOR ICON
         Icon(icon, size: 20, color: accentColor),
         const SizedBox(width: 12),
-
-        // Label and value on the right
         Expanded(
-          // Takes up remaining space
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Small gray label text
               Text(
                 label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: theme.textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              // Larger bold value text
               Text(
                 value,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600, // Make value slightly bolder for contrast
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
