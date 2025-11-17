@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'places_service.dart'; // uses your existing Places API helper
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -11,29 +13,27 @@ class CreateEventPage extends StatefulWidget {
 class _CreateEventPageState extends State<CreateEventPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Basic text fields
+  // Text fields
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
-  final _locationController =
-      TextEditingController(); // e.g. "MSU Denver – Science Building"
-  final _cityController = TextEditingController(); // e.g. "Denver"
+  final _cityController = TextEditingController();
 
-  // Date/time pickers
+  // TypeAhead visible controller (builder pattern)
+  final _locationController = TextEditingController();
+
+  // Date/time
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
 
-  // Topics are now chips instead of free text
+  // Topics (chips)
   final Set<String> _selectedTopics = {};
+  final List<String> _topicOptions = const ['AI', 'Robotics', 'Math', 'Biology', 'Space', 'Coding'];
 
-  // These should match or at least overlap with the interests used in onboarding.
-  final List<String> _topicOptions = const [
-    'AI',
-    'Robotics',
-    'Math',
-    'Biology',
-    'Space',
-    'Coding',
-  ];
+  // Places selection
+  String? _selectedPlaceId;
+  String? _selectedFormattedAddress;
+  double? _selectedLat;
+  double? _selectedLng;
 
   bool _saving = false;
   String _error = '';
@@ -42,36 +42,28 @@ class _CreateEventPageState extends State<CreateEventPage> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _locationController.dispose();
     _cityController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final initial = _selectedDate ?? now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
+      initialDate: _selectedDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
     );
-
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
   Future<void> _pickTime() async {
-    final initial = _selectedTime ?? TimeOfDay(hour: 18, minute: 0);
     final picked = await showTimePicker(
       context: context,
-      initialTime: initial,
+      initialTime: _selectedTime ?? const TimeOfDay(hour: 18, minute: 0),
     );
-
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
-    }
+    if (picked != null) setState(() => _selectedTime = picked);
   }
 
   String get _formattedDate {
@@ -100,13 +92,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
       return;
     }
 
+    // Require a picked suggestion so latitude/longitude are present (needed by MapPage)
+    if (_selectedLat == null || _selectedLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose a location from suggestions to set coordinates.')),
+      );
+      return;
+    }
+
     setState(() {
       _saving = true;
       _error = '';
     });
 
     try {
-      // Combine date + time into a single DateTime
       final combinedDateTime = DateTime(
         _selectedDate!.year,
         _selectedDate!.month,
@@ -117,46 +116,29 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
       final title = _titleController.text.trim();
       final description = _descController.text.trim();
-      final location = _locationController.text.trim();
       final city = _cityController.text.trim();
 
-      // For now, build a simple address string. Later we can add a dedicated
-      // address field and geocoding to fill in lat/lng for the map.
-      final address = '$location, $city';
-
-      await FirebaseFirestore.instance.collection("events").add({
-        "title": title,
-        "description": description,
-        // Store as ISO 8601 so DateTime.parse still works in EventsPage/EventDetailsPage
-        "date": combinedDateTime.toIso8601String(),
-        "location": location,
-        "city": city,
-        "address": address,
-
-        // Topic tags used for filtering and matching interests later
-        "topics": _selectedTopics.toList(),
-
-        // Placeholders for future map pins (lat/lng will be filled by geocoding later)
-        "lat": null,
-        "lng": null,
-
-        "createdAt": FieldValue.serverTimestamp(),
+      await FirebaseFirestore.instance.collection('events').add({
+        'title': title,
+        'description': description,
+        'date': combinedDateTime.toIso8601String(),
+        'location': _selectedFormattedAddress ?? _locationController.text.trim(),
+        'city': city,
+        'topics': _selectedTopics.toList(),
+        'latitude': _selectedLat,
+        'longitude': _selectedLng,
+        'placeId': _selectedPlaceId,
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event created successfully")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event created successfully')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error creating event: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error creating event: $e')));
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -166,7 +148,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Create Event"),
+        title: const Text('Create Event'),
         backgroundColor: scheme.primary,
         foregroundColor: Colors.white,
       ),
@@ -177,38 +159,93 @@ class _CreateEventPageState extends State<CreateEventPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInput("Title", _titleController),
-              _buildInput("Description", _descController, maxLines: 3),
-              _buildInput("Location / Venue", _locationController),
-              _buildInput("City", _cityController),
-              const SizedBox(height: 16),
-              Text(
-                "Date and time",
-                style: Theme.of(context).textTheme.titleMedium,
+              _buildInput('Title', _titleController, context),
+              _buildInput('Description', _descController, context, maxLines: 3),
+
+              const SizedBox(height: 8),
+              Text('Location (type to search)', style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 6),
+
+              // flutter_typeahead v5 builder pattern
+              TypeAheadField<PlacePrediction>(
+                suggestionsCallback: (pattern) => PlacesService.autocomplete(pattern),
+                itemBuilder: (context, s) => ListTile(
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: Text(s.description),
+                ),
+                onSelected: (s) async {
+                  _locationController.text = s.description;
+                  final det = await PlacesService.details(s.placeId);
+                  if (det != null) {
+                    setState(() {
+                      _selectedPlaceId = det.placeId;
+                      _selectedFormattedAddress = det.formattedAddress;
+                      _selectedLat = det.lat;
+                      _selectedLng = det.lng;
+                    });
+                  }
+                },
+                builder: (context, textController, focusNode) {
+                  // keep the visible controller in sync with our backing controller
+                  if (textController.text != _locationController.text) {
+                    textController.value = TextEditingValue(
+                      text: _locationController.text,
+                      selection: TextSelection.collapsed(offset: _locationController.text.length),
+                    );
+                  }
+                  return TextFormField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    style: const TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    decoration: InputDecoration(
+                      labelText: 'Location',
+                      labelStyle: TextStyle(color: scheme.primary),
+                      floatingLabelStyle: TextStyle(color: scheme.primary),
+                      hintText: 'Start typing an address…',
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Enter Location' : null,
+                    onChanged: (v) {
+                      _locationController.text = v;
+                      // user is typing something new, clear previous selection coords
+                      setState(() {
+                        _selectedPlaceId = null;
+                        _selectedFormattedAddress = null;
+                        _selectedLat = null;
+                        _selectedLng = null;
+                      });
+                    },
+                  );
+                },
+                emptyBuilder: (context) => const SizedBox(
+                  height: 48,
+                  child: Center(child: Text('No addresses found')),
+                ),
               ),
+
+              _buildInput('City', _cityController, context),
+
+              const SizedBox(height: 16),
+              Text('Date and time', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _pickDate,
-                      child: Text(_formattedDate),
-                    ),
+                    child: OutlinedButton(onPressed: _pickDate, child: Text(_formattedDate)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _pickTime,
-                      child: Text(_formattedTime),
-                    ),
+                    child: OutlinedButton(onPressed: _pickTime, child: Text(_formattedTime)),
                   ),
                 ],
               ),
+
               const SizedBox(height: 24),
-              Text(
-                "Topics",
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Topics', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -231,16 +268,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   );
                 }).toList(),
               ),
+
               const SizedBox(height: 16),
-              if (_error.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    _error,
-                    style: TextStyle(color: scheme.error),
-                  ),
+              if (_selectedLat != null && _selectedLng != null)
+                Text(
+                  'Selected coords: ${_selectedLat!.toStringAsFixed(6)}, ${_selectedLng!.toStringAsFixed(6)}',
+                  style: TextStyle(color: scheme.secondary),
                 ),
-              const SizedBox(height: 8),
+
+              if (_error.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(_error, style: TextStyle(color: scheme.error)),
+              ],
+
+              const SizedBox(height: 12),
               _saving
                   ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
@@ -248,17 +289,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       child: ElevatedButton.icon(
                         onPressed: _saveEvent,
                         icon: const Icon(Icons.check),
-                        label: const Text("Save Event"),
+                        label: const Text('Save Event'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: scheme.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 24,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -269,23 +305,23 @@ class _CreateEventPageState extends State<CreateEventPage> {
     );
   }
 
-  Widget _buildInput(
-    String label,
-    TextEditingController controller, {
-    int maxLines = 1,
-  }) {
+  Widget _buildInput(String label, TextEditingController controller, BuildContext context, {int maxLines = 1}) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        validator: (val) =>
-            val == null || val.trim().isEmpty ? "Enter $label" : null,
+        style: const TextStyle(color: Colors.black),
+        cursorColor: Colors.black,
+        validator: (val) => val == null || val.trim().isEmpty ? 'Enter $label' : null,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          labelStyle: TextStyle(color: scheme.primary),
+          floatingLabelStyle: TextStyle(color: scheme.primary),
+          hintText: label,
+          hintStyle: const TextStyle(color: Colors.grey),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
           fillColor: Colors.grey.shade100,
         ),

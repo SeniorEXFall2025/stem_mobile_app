@@ -35,7 +35,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
-
+  flutter_typeahead: ^5.2.0
 
 # The following section is specific to Flutter packages.
 flutter:
