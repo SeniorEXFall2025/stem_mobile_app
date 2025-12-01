@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'places_service.dart'; // uses your existing Places API helper
+import 'package:stem_mobile_app/custom_colors.dart';
+import 'places_service.dart';
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -92,7 +93,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       return;
     }
 
-    // Require a picked suggestion so latitude/longitude are present (needed by MapPage)
+    //require a picked suggestion so latitude/longitude are present (needed by MapPage)
     if (_selectedLat == null || _selectedLng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose a location from suggestions to set coordinates.')),
@@ -144,13 +145,23 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final Color appBarForegroundColor =
+        theme.brightness == Brightness.dark ? Colors.white : curiousBlue.shade900;
+    final Color appBarBackgroundColor = theme.scaffoldBackgroundColor;
+    final Color accentColor = curiousBlue.shade900;
+
+    final Color cardBackgroundColor =
+        theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.white;
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Create Event'),
-        backgroundColor: scheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: appBarBackgroundColor,
+        foregroundColor: appBarForegroundColor,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

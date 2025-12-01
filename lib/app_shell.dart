@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stem_mobile_app/custom_colors.dart';
 
-// main pages that live under the bottom nav
+//main pages that live under the bottom nav
 import 'pages/events_page.dart';
 import 'pages/map_page.dart';
 import 'pages/favorites_page.dart';
@@ -18,33 +18,43 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
 
-  final _pages = const [
-    EventsPage(),
-    MapPage(),
-    FavoritesPage(),
-    SettingsPage(),
-  ];
+  //proximity radius in miles (shared to pages)
+  final ValueNotifier<double> _radiusMi = ValueNotifier<double>(10.0);
 
-  // app title shown in the top bar
+  late List<Widget> _pages;
+
+  //app title shown in the top bar
   String get _appTitle => 'CO STEM Ecosystem';
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      EventsPage(radiusMi: _radiusMi),
+      MapPage(radiusMi: _radiusMi),
+      const FavoritesPage(),
+      const SettingsPage(),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _radiusMi.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-    // scaffold background comes from the active theme (dark or light)
     final Color appBackground = theme.scaffoldBackgroundColor;
 
-    // color for icons/text in the app bar
-    final Color appBarForegroundColor = theme.brightness == Brightness.dark
-        ? Colors.white
-        : curiousBlue.shade900;
+    final Color appBarForegroundColor =
+        theme.brightness == Brightness.dark ? Colors.white : curiousBlue.shade900;
 
-    // slightly softer color for the "signed in as" subtitle
-    final Color secondaryTextColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.7)
-        : curiousBlue.shade900;
+    final Color secondaryTextColor =
+        theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.7) : curiousBlue.shade900;
 
     return Scaffold(
       backgroundColor: appBackground,
@@ -54,12 +64,12 @@ class _AppShellState extends State<AppShell> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // app name (same on every tab)
+            //app name (same on every tab)
             Text(
               _appTitle,
               style: TextStyle(color: appBarForegroundColor),
             ),
-            // signed in banner
+            //signed in banner
             Text(
               'Signed in as $userEmail',
               style: theme.textTheme.bodySmall?.copyWith(
@@ -69,40 +79,8 @@ class _AppShellState extends State<AppShell> {
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.menu, color: appBarForegroundColor),
-            onSelected: (value) async {
-              switch (value) {
-                case 'about':
-                  if (!mounted) return;
-                  Navigator.pushNamed(context, '/about');
-                  break;
-                case 'logout':
-                  // close any keyboards/overlays
-                  FocusScope.of(context).unfocus();
-
-                  // sign out, then clear the stack to the auth screen
-                  await FirebaseAuth.instance.signOut();
-
-                  if (!context.mounted) return;
-
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil('/auth', (route) => false);
-                  break;
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'about',
-                child: Text('About'),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'logout',
-                child: Text('Logout ($userEmail)'),
-              ),
-            ],
-          ),
+          //menu with live radius slider (0.5 – 50 mi)
+          _RadiusMenu(appBarForegroundColor: appBarForegroundColor, radiusMi: _radiusMi, userEmail: userEmail),
         ],
       ),
       body: IndexedStack(index: _index, children: _pages),
@@ -155,6 +133,117 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RadiusMenu extends StatefulWidget {
+  final Color appBarForegroundColor;
+  final ValueNotifier<double> radiusMi;
+  final String userEmail;
+
+  const _RadiusMenu({
+    required this.appBarForegroundColor,
+    required this.radiusMi,
+    required this.userEmail,
+  });
+
+  @override
+  State<_RadiusMenu> createState() => _RadiusMenuState();
+}
+
+class _RadiusMenuState extends State<_RadiusMenu> {
+  final MenuController _menuController = MenuController();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return MenuAnchor(
+      controller: _menuController,
+      builder: (context, controller, child) {
+        return IconButton(
+          tooltip: 'Menu',
+          icon: Icon(Icons.menu, color: widget.appBarForegroundColor),
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+        );
+      },
+      //interactive menu body
+      menuChildren: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            'Search radius',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: widget.appBarForegroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        ValueListenableBuilder<double>(
+          valueListenable: widget.radiusMi,
+          builder: (context, value, _) {
+            final clamped = value.clamp(0.5, 50.0);
+            return SizedBox(
+              width: 280,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        min: 0.5,
+                        max: 50,
+                        divisions: 99, //0.5-mi increments
+                        value: clamped,
+                        label: '${clamped.toStringAsFixed(1)} mi',
+                        onChanged: (v) => widget.radiusMi.value = v,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: curiousBlue.shade900,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${clamped.toStringAsFixed(1)} mi',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        const Divider(height: 8),
+        MenuItemButton(
+          onPressed: () {
+            _menuController.close();
+            Navigator.pushNamed(context, '/about');
+          },
+          child: const Text('About'),
+        ),
+        MenuItemButton(
+          onPressed: () async {
+            _menuController.close();
+            FocusScope.of(context).unfocus();
+            await FirebaseAuth.instance.signOut();
+            if (!context.mounted) return;
+            Navigator.of(context).pushNamedAndRemoveUntil('/auth', (route) => false);
+          },
+          child: Text('Logout (${widget.userEmail})'),
+        ),
+      ],
     );
   }
 }
