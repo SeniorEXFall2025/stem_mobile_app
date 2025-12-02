@@ -1,5 +1,8 @@
+// lib/app_shell.dart (FINALIZED WITH SPECIFIC COLORS)
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// Now directly using the constants defined here
 import 'package:stem_mobile_app/custom_colors.dart';
 
 // main pages that live under the bottom nav
@@ -60,14 +63,11 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         flexibleSpace: Container(
+          // --- CHANGE 1: Unified App Bar Background Color (Deep Blue) ---
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                curiousBlue.shade800,
-                curiousBlue.shade900,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            color: curiousBlue.shade900,
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
             ),
           ),
         ),
@@ -80,7 +80,7 @@ class _AppShellState extends State<AppShell> {
               backgroundColor: Colors.white,
               child: ClipOval(
                 child: Image.asset(
-                  'assets/images/co_stem_logo.png',
+                  'assets/images/co_stem_logo_transparent.png',
                   width: 32,
                   height: 32,
                   fit: BoxFit.cover, // crop into the circle
@@ -91,9 +91,9 @@ class _AppShellState extends State<AppShell> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _appTitle,
-                  style: const TextStyle(
+                const Text(
+                  'CO STEM Ecosystem', // Using the hardcoded title text here
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -126,6 +126,7 @@ class _AppShellState extends State<AppShell> {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Container(
             decoration: BoxDecoration(
+              // --- CHANGE 2: Unified Bottom Nav Color (Deep Blue) ---
               color: curiousBlue.shade900,
               borderRadius: BorderRadius.circular(28),
               boxShadow: const [
@@ -238,7 +239,8 @@ class _RadiusMenuState extends State<_RadiusMenu> {
                         max: 50,
                         divisions: 99,
                         value: clamped,
-                        activeColor: curiousBlue.shade700,
+                        // --- CHANGE 3: Slider Active Color (Bright Blue Accent) ---
+                        activeColor: curiousBlue.shade400,
                         label: '${clamped.toStringAsFixed(1)} mi',
                         onChanged: (v) => widget.radiusMi.value = v,
                       ),
@@ -250,15 +252,18 @@ class _RadiusMenuState extends State<_RadiusMenu> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
+                        // --- CHANGE 4: Radius Container Light Background ---
                         color: curiousBlue.shade50,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
+                          // Using a mid-shade for the border
                           color: curiousBlue.shade300,
                         ),
                       ),
                       child: Text(
                         '${clamped.toStringAsFixed(1)} mi',
                         style: TextStyle(
+                          // Using a dark shade for text inside the light container
                           color: curiousBlue.shade900,
                           fontWeight: FontWeight.w700,
                         ),
@@ -301,7 +306,7 @@ class _RadiusMenuState extends State<_RadiusMenu> {
             if (!context.mounted) return;
             Navigator.of(context).pushNamedAndRemoveUntil(
               '/auth',
-              (route) => false,
+                  (route) => false,
             );
           },
           child: Text(

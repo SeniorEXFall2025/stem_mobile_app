@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:stem_mobile_app/custom_colors.dart';
+// FIX: Use 'as' to create a unique prefix for the color constants
+import '../custom_colors.dart' as app_colors;
 import 'places_service.dart';
 
 class CreateEventPage extends StatefulWidget {
@@ -50,19 +51,81 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final primaryColor = app_colors.curiousBlue.shade900;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
+      builder: (context, child) {
+        // FIX: Remove 'primaryColorDark' and simplify ColorScheme initialization
+        // FIX: Use copyWith on the main theme to override colors directly
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              // Explicitly set the background for the date picker header (dark blue)
+              primary: primaryColor,
+              // Explicitly set the text *on* the header (white)
+              onPrimary: Colors.white,
+              // Explicitly set the main surface background (fixes dark mode visibility)
+              surface: Theme.of(context).scaffoldBackgroundColor,
+              // Explicitly set the text *on* the surface for dates and weekdays
+              onSurface: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+            // FIX: Use copyWith on current dialogTheme and assign directly (most compatible fix for this error)
+            dialogTheme: Theme.of(context).dialogTheme.copyWith(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            ),
+            // Ensure 'Cancel'/'OK' text buttons are readable
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor, // Dark blue color for action buttons
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
   Future<void> _pickTime() async {
+    final primaryColor = app_colors.curiousBlue.shade900;
+
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? const TimeOfDay(hour: 18, minute: 0),
+      builder: (context, child) {
+        // FIX: Remove 'primaryColorDark' and simplify ColorScheme initialization
+        // FIX: Use copyWith on the main theme to override colors directly
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: primaryColor,
+              onPrimary: Colors.white,
+              surface: Theme.of(context).scaffoldBackgroundColor,
+              onSurface: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+            // FIX: Use copyWith on current dialogTheme and assign directly (most compatible fix for this error)
+            dialogTheme: Theme.of(context).dialogTheme.copyWith(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            ),
+            // Ensure 'Cancel'/'OK' text buttons are readable
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor, // Dark blue color for action buttons
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _selectedTime = picked);
   }
@@ -148,20 +211,44 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    final Color appBarForegroundColor =
-        theme.brightness == Brightness.dark ? Colors.white : curiousBlue.shade900;
-    final Color appBarBackgroundColor = theme.scaffoldBackgroundColor;
-    final Color accentColor = curiousBlue.shade900;
+    // Aesthetic variables
+    final Color headerColor = app_colors.curiousBlue.shade900;
+    final Color primaryButtonColor = app_colors.curiousBlue.shade900;
+    const Color onPrimaryButtonColor = Colors.white;
+    final Color unselectedChipColor = theme.brightness == Brightness.dark
+        ? app_colors.dark900
+        : scheme.surface;
 
-    final Color cardBackgroundColor =
-        theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.white;
+    // Input field colors for dark/light mode consistency
+    final Color inputFieldFillColor = theme.brightness == Brightness.dark
+        ? Colors.grey.shade900
+        : Colors.grey.shade100;
+    final Color inputFieldTextColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    final Color inputFieldLabelColor = theme.brightness == Brightness.dark
+        ? scheme.secondary
+        : headerColor;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Create Event'),
-        backgroundColor: appBarBackgroundColor,
-        foregroundColor: appBarForegroundColor,
+        // STYLED: Consistent dark header color
+        backgroundColor: headerColor,
+
+        title: const Text(
+          'Create Event',
+          style: TextStyle(color: Colors.white),
+        ),
+        foregroundColor: Colors.white, // Ensures back arrow is white
+        elevation: 8.0,
+
+        // STYLED: Rounded Corner to match other pages
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -174,7 +261,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
               _buildInput('Description', _descController, context, maxLines: 3),
 
               const SizedBox(height: 8),
-              Text('Location (type to search)', style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                  'Location (type to search)',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: scheme.onBackground
+                  )
+              ),
               const SizedBox(height: 6),
 
               // flutter_typeahead v5 builder pattern
@@ -207,17 +299,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   return TextFormField(
                     controller: textController,
                     focusNode: focusNode,
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Colors.black,
+                    // STYLED: Theme-aware text color
+                    style: TextStyle(color: inputFieldTextColor),
+                    cursorColor: scheme.secondary,
                     decoration: InputDecoration(
                       labelText: 'Location',
-                      labelStyle: TextStyle(color: scheme.primary),
-                      floatingLabelStyle: TextStyle(color: scheme.primary),
+                      labelStyle: TextStyle(color: inputFieldLabelColor),
+                      floatingLabelStyle: TextStyle(color: scheme.secondary),
                       hintText: 'Start typing an address…',
-                      hintStyle: const TextStyle(color: Colors.grey),
+                      hintStyle: TextStyle(color: Colors.grey.shade600),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.grey.shade100,
+                      fillColor: inputFieldFillColor,
                     ),
                     validator: (val) => val == null || val.trim().isEmpty ? 'Enter Location' : null,
                     onChanged: (v) {
@@ -241,22 +334,50 @@ class _CreateEventPageState extends State<CreateEventPage> {
               _buildInput('City', _cityController, context),
 
               const SizedBox(height: 16),
-              Text('Date and time', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                  'Date and time',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onBackground
+                  )
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(onPressed: _pickDate, child: Text(_formattedDate)),
+                    child: OutlinedButton(
+                      onPressed: _pickDate,
+                      child: Text(_formattedDate, style: TextStyle(color: scheme.onBackground)),
+                      // STYLED: Theme-aware OutlinedButton
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: scheme.secondary,
+                        side: BorderSide(color: scheme.outline),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(onPressed: _pickTime, child: Text(_formattedTime)),
+                    child: OutlinedButton(
+                      onPressed: _pickTime,
+                      child: Text(_formattedTime, style: TextStyle(color: scheme.onBackground)),
+                      // STYLED: Theme-aware OutlinedButton
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: scheme.secondary,
+                        side: BorderSide(color: scheme.outline),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
                   ),
                 ],
               ),
 
               const SizedBox(height: 24),
-              Text('Topics', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                  'Topics',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onBackground
+                  )
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -266,7 +387,17 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   return FilterChip(
                     label: Text(topic),
                     selected: selected,
-                    selectedColor: scheme.primaryContainer.withOpacity(0.35),
+                    // STYLED: Use dark shade for selected color
+                    selectedColor: primaryButtonColor,
+                    backgroundColor: unselectedChipColor,
+                    labelStyle: TextStyle(
+                      // Text color contrasts with dark shade (white)
+                      color: selected ? onPrimaryButtonColor : scheme.onBackground,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    side: BorderSide(
+                      color: selected ? primaryButtonColor : scheme.outline,
+                    ),
                     onSelected: (_) {
                       setState(() {
                         if (selected) {
@@ -294,21 +425,25 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
               const SizedBox(height: 12),
               _saving
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(child: CircularProgressIndicator(color: primaryButtonColor))
                   : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _saveEvent,
-                        icon: const Icon(Icons.check),
-                        label: const Text('Save Event'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _saveEvent,
+                  icon: const Icon(Icons.check, color: onPrimaryButtonColor),
+                  label: const Text(
+                    'Save Event',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    // STYLED: Consistent dark button color
+                    backgroundColor: primaryButtonColor,
+                    foregroundColor: onPrimaryButtonColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -317,24 +452,39 @@ class _CreateEventPageState extends State<CreateEventPage> {
   }
 
   Widget _buildInput(String label, TextEditingController controller, BuildContext context, {int maxLines = 1}) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final headerColor = app_colors.curiousBlue.shade900;
+
+    // Input field colors for dark/light mode consistency
+    final Color inputFieldFillColor = theme.brightness == Brightness.dark
+        ? Colors.grey.shade900
+        : Colors.grey.shade100;
+    final Color inputFieldTextColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    final Color inputFieldLabelColor = theme.brightness == Brightness.dark
+        ? scheme.secondary
+        : headerColor;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        style: const TextStyle(color: Colors.black),
-        cursorColor: Colors.black,
+        // STYLED: Theme-aware text color
+        style: TextStyle(color: inputFieldTextColor),
+        cursorColor: scheme.secondary,
         validator: (val) => val == null || val.trim().isEmpty ? 'Enter $label' : null,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: scheme.primary),
-          floatingLabelStyle: TextStyle(color: scheme.primary),
+          labelStyle: TextStyle(color: inputFieldLabelColor),
+          floatingLabelStyle: TextStyle(color: scheme.secondary),
           hintText: label,
-          hintStyle: const TextStyle(color: Colors.grey),
+          hintStyle: TextStyle(color: Colors.grey.shade600),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
-          fillColor: Colors.grey.shade100,
+          fillColor: inputFieldFillColor,
         ),
       ),
     );

@@ -35,6 +35,8 @@ dependencies:
   url_launcher: ^6.2.6
 
 
+  flutter_typeahead: any
+  http: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

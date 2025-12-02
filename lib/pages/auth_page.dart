@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stem_mobile_app/custom_colors.dart'; // Added for access to curiousBlue
+import 'package:stem_mobile_app/custom_colors.dart';
 
 /// Simple email/password auth screen.
 /// - Login: uses main.dart's Auth Gate to decide next screen (AppShell / Onboarding)
@@ -140,9 +140,7 @@ class _AuthPageState extends State<AuthPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // CRITICAL FIX: The deep blue background color (dark975) is set as
-    // the dark theme's scaffold background. We use that here, and ensure
-    // the app is running in dark mode for this page if possible.
+
     final Color deepBlueBackground = theme.scaffoldBackgroundColor;
 
     // Define a light gray border color for the unfocused state
@@ -155,16 +153,14 @@ class _AuthPageState extends State<AuthPage> {
 
     // Dynamically determine the text color for the forgot password link
     final Color linkTextColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.8) // Light color against deep blue background
-        : curiousBlue.shade900.withOpacity(0.9); // Dark color against white background
+        ? Colors.white.withValues() // Light color against deep blue background
+        : curiousBlue.shade900.withValues(); // Dark color against white background
 
     // Dynamically determine the color for the AppBar text
     final Color appBarTextColor = theme.brightness == Brightness.dark
         ? scheme.onPrimary // White in dark mode
         : curiousBlue.shade900; // Dark blue in light mode
 
-    // REMOVED: Since we moved inputContentColor logic to lib/main.dart theme
-    // final Color inputContentColor = Colors.black;
 
     return Scaffold(
       // Use the deep blue background color

@@ -1,1 +1,44 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"stem-mobile-app-da922","appId":"1:505976912023:android:bca209600bafdbe51211d2","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"stem-mobile-app-da922","appId":"1:505976912023:ios:564d0a909e19b5e91211d2","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"stem-mobile-app-da922","configurations":{"android":"1:505976912023:android:bca209600bafdbe51211d2","ios":"1:505976912023:ios:564d0a909e19b5e91211d2"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "stem-mobile-app-da922",
+          "appId": "1:505976912023:android:bca209600bafdbe51211d2",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "stem-mobile-app-da922",
+          "appId": "1:505976912023:ios:564d0a909e19b5e91211d2",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "stem-mobile-app-da922",
+          "configurations": {
+            "android": "1:505976912023:android:bca209600bafdbe51211d2",
+            "ios": "1:505976912023:ios:564d0a909e19b5e91211d2"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}
