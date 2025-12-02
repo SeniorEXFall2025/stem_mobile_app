@@ -1,11 +1,10 @@
 name: stem_mobile_app
 description: A mobile application for the Colorado STEM Ecosystem.
-publish_to: 'none' # Remove this line if you intend to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  # Maintain compatibility with the versions used for the successful pub get
   sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
@@ -16,62 +15,53 @@ dependencies:
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
   cloud_firestore: ^6.1.0
-  # firebase_ui_auth: ^1.10.1 # <-- REDUNDANT: Removed as AuthPage is now custom
-  #FCM
+
+  # Firebase Cloud Messaging
+  firebase_messaging: ^16.0.4
+
+  # PUSH NOTIFICATIONS: REQUIRED for displaying notifications when the app is in the foreground
+  flutter_local_notifications: ^16.3.2
+
   # Utilities
   intl: ^0.20.2
+  url_launcher: ^6.2.6
+  http: ^1.2.1 # Specified version for consistency
 
   # Theming/UI/Fonts
-  google_fonts: ^6.1.0 # Used for DM Sans font in lib/main.dart
+  google_fonts: ^6.1.0
 
-  # Packages required for MapPage.dart
-  google_maps_flutter: ^2.5.3 # Adds Google Maps view to Flutter
-  geolocator: ^14.0.2          # For handling location permissions and getting current location
+  # Mapping/Location
+  google_maps_flutter: ^2.5.3
+  geolocator: ^14.0.2
+
+  # Input/Typeahead
+  flutter_typeahead: ^5.2.0 # Consolidated to one entry
 
   # Splash Screen Package
   flutter_native_splash: ^2.3.10
-  firebase_messaging: ^16.0.4
 
-  url_launcher: ^6.2.6
-
-
-  flutter_typeahead: any
-  http: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_typeahead: ^5.2.0
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # Ensures that the Material Icons font is included
+  # ... (rest of the file is unchanged)
   uses-material-design: true
 
-  # Asset declarations are REQUIRED for your logo, fixing the asset not found error.
   assets:
     - assets/images/
     - assets/data/ecosystem_orgs.json
-    # If you later decide to include a local fonts folder, you would add:
-    # - assets/fonts/
-
-  # NOTE: The explicit 'fonts:' section for Poppins has been REMOVED/OMITTED
-  # because we are using the `google_fonts` package, which handles bundling.
-
 
 # flutter_native_splash configuration
 flutter_native_splash:
-  # Updated: Use white background (#FFFFFF) for light mode, matching the main app theme.
   color: "#FFFFFF"
   image: assets/images/co_stem_logo_transparent.png
 
-  # Maintained: Use the deep dark color (#0e0e11) for dark mode, matching the dark975 theme.
   color_dark: "#0e0e11"
   image_dark: assets/images/co_stem_logo_transparent.png
 
-  # ADDED: Explicit configuration for Android 12+
-  # This tells Android 12+ to use your logo as the icon and sets the background color.
   android_12:
     image: assets/images/co_stem_logo_transparent.png
     icon_background_color: "#FFFFFF"

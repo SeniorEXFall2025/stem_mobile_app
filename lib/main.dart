@@ -10,24 +10,56 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
 import 'package:stem_mobile_app/pages/about_page.dart';
 import 'package:stem_mobile_app/pages/create_event_page.dart';
-import 'package:stem_mobile_app/pages/organizations_page.dart'; // NEW
+import 'package:stem_mobile_app/pages/organizations_page.dart';
 import 'theme_controller.dart';
 import 'package:stem_mobile_app/pages/settings_page.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
+Future<void> setupFCM() async {
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  final token = await messaging.getToken();
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    if (message.notification != null) {
+      // Local notification package handling logic would go here
+    }
+  });
+
+  await messaging.getInitialMessage();
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  await setupFCM();
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // assuming curiousBlue and dark975 are defined in custom_colors.dart
   final Color _seedColor = curiousBlue;
 
-  // light theme
   ThemeData get _lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -59,7 +91,6 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  // dark theme
   ThemeData get _darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -93,7 +124,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // listen for theme changes from ThemeController
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeController.themeMode,
       builder: (context, mode, _) {
@@ -105,27 +135,20 @@ class MyApp extends StatelessWidget {
           theme: _lightTheme,
           darkTheme: _darkTheme,
 
-          // named routes used throughout the app
           routes: {
-            // root gate (decides between auth flow vs app shell)
             '/': (context) => const AuthGate(),
-
-            // auth / login flow
             '/auth': (context) => const AuthGate(),
             '/onboarding': (context) => const OnboardingPage(),
             '/forgot-password': (context) => const ForgotPasswordPage(),
-
-            // app pages
             '/about': (context) => const AboutPage(),
             '/create-event': (context) => const CreateEventPage(),
             '/settings': (context) => const SettingsPage(),
             '/organizations': (context) =>
-                const OrganizationsPage(), // NEW route
+            const OrganizationsPage(),
           },
 
           initialRoute: '/',
 
-          // fallback for unknown routes
           onUnknownRoute: (settings) {
             return MaterialPageRoute(
               builder: (context) => const AuthGate(),
@@ -137,8 +160,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// the auth gate determines whether to show the AuthPage,
-/// the OnboardingPage, or the AppShell.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -155,12 +176,10 @@ class AuthGate extends StatelessWidget {
 
         final user = authSnap.data;
 
-        // no one is signed in -> show auth screen
         if (user == null) {
           return const AuthPage();
         }
 
-        // user is signed in. now check their profile in Firestore.
         final docStream = FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -175,7 +194,6 @@ class AuthGate extends StatelessWidget {
               );
             }
 
-            // if there is no profile document yet, send them to onboarding
             if (!profileSnap.hasData || !profileSnap.data!.exists) {
               return const OnboardingPage();
             }
@@ -188,11 +206,9 @@ class AuthGate extends StatelessWidget {
             final bool profileIncomplete = role == null || interests.isEmpty;
 
             if (profileIncomplete) {
-              // signed in but missing role or interests -> onboarding
               return const OnboardingPage();
             }
 
-            // signed in and profile looks complete -> main app shell
             return const AppShell();
           },
         );
