@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../custom_colors.dart' as app_colors;
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -29,34 +29,51 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Password reset link sent to $email')),
       );
-      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 500), () => Navigator.pop(context));
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Error sending reset email')),
       );
     } finally {
-      setState(() => _isSending = false);
+      if (mounted) setState(() => _isSending = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    final Color primaryAccentColor = app_colors.curiousBlue.shade900;
+    const Color onPrimaryColor = Colors.white;
+
+    // Theme-aware input field styling
+    final Color inputFieldFillColor = isDarkMode
+        ? Colors.grey.shade900
+        : Colors.grey.shade100;
+    final Color inputFieldTextColor = isDarkMode
+        ? Colors.white
+        : Colors.black;
 
     return Scaffold(
+      // Use scaffoldBackgroundColor for the background
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: colorScheme.surface,
+              color: isDarkMode ? scheme.surfaceContainerLow : scheme.surface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: isDarkMode
+                      ? Colors.black.withOpacity(0.5)
+                      : Colors.grey.withOpacity(0.4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -66,37 +83,36 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               children: [
                 Text(
                   "Forgot Password",
-                  style: GoogleFonts.poppins(
-                    fontSize: 26,
+                  style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: colorScheme.secondary,
+                    color: primaryAccentColor,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   "Enter your email address and we'll send you a link to reset your password.",
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey[400],
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant, // Subdued text color
                   ),
                 ),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: inputFieldTextColor),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: inputFieldFillColor,
                     labelText: 'Email',
-                    labelStyle: GoogleFonts.poppins(
-                      color: Colors.grey[300],
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? Colors.grey.shade400 : primaryAccentColor,
                     ),
+                    floatingLabelStyle: TextStyle(color: primaryAccentColor),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  style: GoogleFonts.poppins(color: Colors.white),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -105,24 +121,25 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   child: ElevatedButton(
                     onPressed: _isSending ? null : _resetPassword,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
+                      backgroundColor: primaryAccentColor,
+                      foregroundColor: onPrimaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isSending
                         ? const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          )
+                      color: onPrimaryColor,
+                      strokeWidth: 2,
+                    )
                         : Text(
-                            'Send Reset Link',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
+                      'Send Reset Link',
+                      // STYLED: Use standard theme text
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: onPrimaryColor,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -130,8 +147,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     "Back to Login",
-                    style: GoogleFonts.poppins(
-                      color: colorScheme.primary,
+                    // STYLED: Use primary accent color
+                    style: TextStyle(
+                      color: primaryAccentColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
