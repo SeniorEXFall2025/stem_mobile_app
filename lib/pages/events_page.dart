@@ -10,7 +10,7 @@ import 'event_details.dart';
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key, required this.radiusMi});
 
-  //radius in miles (from app_shell)
+  // radius in miles (from AppShell)
   final ValueListenable<double> radiusMi;
 
   @override
@@ -21,10 +21,13 @@ class _EventsPageState extends State<EventsPage> {
   String? userRole;
   bool _loadingRole = true;
 
-  //location
+  // NEW: interests pulled from users/{uid}.interests
+  List<String> _userInterests = [];
+
+  // location
   Position? _currentPos;
 
-  //radius mirror
+  // radius mirror
   double _radiusMi = 10.0;
 
   @override
@@ -33,7 +36,7 @@ class _EventsPageState extends State<EventsPage> {
     _radiusMi = widget.radiusMi.value;
     widget.radiusMi.addListener(_onRadiusChanged);
 
-    _loadUserRole();
+    _loadUserRole();    // now also loads interests
     _initLocation();
   }
 
@@ -44,7 +47,7 @@ class _EventsPageState extends State<EventsPage> {
       oldWidget.radiusMi.removeListener(_onRadiusChanged);
       _radiusMi = widget.radiusMi.value;
       widget.radiusMi.addListener(_onRadiusChanged);
-      setState(() {}); //rebuild to apply new radius
+      setState(() {}); // rebuild to apply new radius
     }
   }
 
@@ -74,14 +77,28 @@ class _EventsPageState extends State<EventsPage> {
     }
   }
 
+  /// Load the user's role *and* interests from Firestore.
   Future<void> _loadUserRole() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       final snap =
           await FirebaseFirestore.instance.collection("users").doc(uid).get();
-      final role = snap.data()?["role"];
+
+      final data = snap.data();
+      final role = data?["role"];
+      final interestsRaw = data?["interests"];
+
       setState(() {
+        // role (mentor vs student) for Create Event FAB
         userRole = role?.toString().toLowerCase();
+
+        // safely convert interests to List<String>
+        if (interestsRaw is List) {
+          _userInterests = interestsRaw.whereType<String>().toList();
+        } else {
+          _userInterests = [];
+        }
+
         _loadingRole = false;
       });
     } else {
@@ -97,7 +114,7 @@ class _EventsPageState extends State<EventsPage> {
     if (lat == null || lng == null) return null;
     final meters =
         Geolocator.distanceBetween(pos.latitude, pos.longitude, lat, lng);
-    return meters / 1609.344; //meters -> miles
+    return meters / 1609.344; // meters -> miles
   }
 
   @override
@@ -111,19 +128,17 @@ class _EventsPageState extends State<EventsPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    //adaptive color AppBar text/icons
+    // adaptive AppBar colors
     final Color appBarForegroundColor = theme.brightness == Brightness.dark
         ? Colors.white
         : curiousBlue.shade900;
 
-    //adaptive background color AppBar
     final Color appBarBackgroundColor = theme.scaffoldBackgroundColor;
 
     final Color accentColor = curiousBlue.shade900;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-
       appBar: AppBar(
         title: const Text("STEM Events"),
         backgroundColor: appBarBackgroundColor,
@@ -141,14 +156,32 @@ class _EventsPageState extends State<EventsPage> {
 
           final docs = snapshot.data?.docs ?? [];
 
-          //filter by distance if there's a location
+          // Filter by:
+          //  1) distance (within _radiusMi miles)
+          //  2) interests (event.topics intersects _userInterests)
           final filtered = <QueryDocumentSnapshot>[];
           for (final d in docs) {
             final data = d.data() as Map<String, dynamic>;
+
+            // --- distance filter ---
             final dist = _distanceMiTo(data);
-            if (dist != null && dist <= _radiusMi) {
-              filtered.add(d);
+            if (dist == null || dist > _radiusMi) {
+              // skip events outside radius or missing coords
+              continue;
             }
+
+            // --- interest filter ---
+            final topics = List<String>.from(data["topics"] ?? []);
+
+            // If user has no interests saved, show all events within radius.
+            final bool matchesInterests =
+                _userInterests.isEmpty || topics.any(_userInterests.contains);
+
+            if (!matchesInterests) {
+              continue;
+            }
+
+            filtered.add(d);
           }
 
           if (filtered.isEmpty) {
@@ -158,7 +191,9 @@ class _EventsPageState extends State<EventsPage> {
                 child: Text(
                   _currentPos == null
                       ? "Location permission is required to filter events by distance."
-                      : "No events within ${_radiusMi.toStringAsFixed(1)} mi.",
+                      : _userInterests.isEmpty
+                          ? "No events found within ${_radiusMi.toStringAsFixed(1)} mi.\nTry widening the radius or adding interests in Settings."
+                          : "No events within ${_radiusMi.toStringAsFixed(1)} mi that match your interests.\nTry widening the radius or updating your interests.",
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -174,8 +209,9 @@ class _EventsPageState extends State<EventsPage> {
 
               final title = data["title"] ?? "Untitled Event";
               final description = data["description"] ?? "No description";
-              final dateStr = data["date"];
-              final location = data["city"] ?? "No location";
+              final dateStr = data["date"] as String?;
+              // prefer full address, fallback to city
+              final location = data["location"] ?? data["city"] ?? "No location";
               final topics = List<String>.from(data["topics"] ?? []);
 
               String formattedDate = dateStr ?? "TBD";
@@ -183,7 +219,9 @@ class _EventsPageState extends State<EventsPage> {
                 try {
                   final parsedDate = DateTime.parse(dateStr);
                   formattedDate = DateFormat.yMMMEd().format(parsedDate);
-                } catch (_) {}
+                } catch (_) {
+                  // leave formattedDate as-is
+                }
               }
 
               final distMi = _distanceMiTo(data);
@@ -206,8 +244,8 @@ class _EventsPageState extends State<EventsPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => EventDetailsPage(
-                          eventId: doc.id, //pass the Firestore document ID
-                          eventData: data, //pass the event data map
+                          eventId: doc.id, // Firestore document ID
+                          eventData: data,  // event data map
                         ),
                       ),
                     );
@@ -229,6 +267,7 @@ class _EventsPageState extends State<EventsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Title
                         Text(
                           title,
                           style:
@@ -238,6 +277,8 @@ class _EventsPageState extends State<EventsPage> {
                                   ),
                         ),
                         const SizedBox(height: 8),
+
+                        // Date + distance
                         Row(
                           children: [
                             Icon(Icons.calendar_today,
@@ -247,6 +288,8 @@ class _EventsPageState extends State<EventsPage> {
                           ],
                         ),
                         const SizedBox(height: 4),
+
+                        // Location
                         Row(
                           children: [
                             Icon(Icons.location_on,
@@ -256,6 +299,8 @@ class _EventsPageState extends State<EventsPage> {
                           ],
                         ),
                         const SizedBox(height: 8),
+
+                        // Description
                         Text(
                           description,
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -263,6 +308,8 @@ class _EventsPageState extends State<EventsPage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 10),
+
+                        // Topic chips
                         Wrap(
                           spacing: 6,
                           children: topics
@@ -288,7 +335,7 @@ class _EventsPageState extends State<EventsPage> {
         },
       ),
 
-      //button bottom right that's only for mentors
+      // Create Event button only for mentors
       floatingActionButton: (userRole == "mentor")
           ? FloatingActionButton.extended(
               onPressed: () {

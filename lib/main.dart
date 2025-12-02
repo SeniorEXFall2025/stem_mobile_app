@@ -10,7 +10,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stem_mobile_app/pages/forgot_password_page8.dart';
 import 'package:stem_mobile_app/pages/about_page.dart';
 import 'package:stem_mobile_app/pages/create_event_page.dart';
+import 'package:stem_mobile_app/pages/organizations_page.dart'; // NEW
 import 'theme_controller.dart';
+import 'package:stem_mobile_app/pages/settings_page.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -115,6 +118,9 @@ class MyApp extends StatelessWidget {
             // app pages
             '/about': (context) => const AboutPage(),
             '/create-event': (context) => const CreateEventPage(),
+            '/settings': (context) => const SettingsPage(),
+            '/organizations': (context) =>
+                const OrganizationsPage(), // NEW route
           },
 
           initialRoute: '/',

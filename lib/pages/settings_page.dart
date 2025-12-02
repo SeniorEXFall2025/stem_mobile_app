@@ -19,21 +19,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        foregroundColor:
+            theme.brightness == Brightness.dark ? Colors.white : scheme.primary,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Page heading
-              Text(
-                'Settings',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
               // Basic account info card
               Card(
                 elevation: 2,
@@ -115,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                         const SizedBox(height: 16),
 
-                        // Theme section – this one actually flips the app theme now.
+                        // Theme section – flips the app theme.
                         Card(
                           elevation: 2,
                           child: ValueListenableBuilder<ThemeMode>(
@@ -131,10 +129,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 trailing: Switch(
                                   value: isDark,
-                                  activeColor: scheme.primary,
+                                  activeThumbColor: scheme.primary,
                                   onChanged: (value) {
                                     ThemeController.setThemeMode(
-                                      value ? ThemeMode.dark : ThemeMode.light,
+                                      value
+                                          ? ThemeMode.dark
+                                          : ThemeMode.light,
                                     );
                                   },
                                 ),
