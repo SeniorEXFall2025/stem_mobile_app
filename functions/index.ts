@@ -7,7 +7,9 @@ import { Message } from 'firebase-admin/lib/messaging';
 admin.initializeApp();
 const db = admin.firestore();
 
-// Define the expected type for the notification data in Firestore
+// Type Definitions
+
+// Define the expected type for the notification data in Firestore (the trigger document)
 type NotificationData = {
     userId: string;
     title?: string;
@@ -15,15 +17,21 @@ type NotificationData = {
     route?: string;
 };
 
+// Define the expected type for the Event document in Firestore (the source document)
+type EventData = {
+    title: string;
+    description: string;
+    // Add other relevant fields if needed
+};
+
+
 /**
  * Sends a push notification to a target user when a new notification document is created.
- * * Uses Firebase Functions V2 modular syntax.
  */
 export const sendNotificationOnCreate = onDocumentCreated(
     // 1. Specify the document path listener
     'notifications/{notificationId}',
     async (event) => {
-        // In V2 'onDocumentCreated', event.data is the QueryDocumentSnapshot of the new document.
         const snapshot = event.data;
 
         if (!snapshot) {
@@ -31,9 +39,8 @@ export const sendNotificationOnCreate = onDocumentCreated(
             return;
         }
 
-        // Use the generic `data()` method and cast to our expected type.
         const notificationData = snapshot.data() as NotificationData;
-        const recipientUserId = notificationData.userId;
+        const recipientUserId: any = notificationData?.userId; // Using lowercase 'i'
 
         if (!recipientUserId) {
             logger.log('Notification document missing userId in:', event.params.notificationId);
@@ -59,11 +66,9 @@ export const sendNotificationOnCreate = onDocumentCreated(
                 body: notificationData.body || 'You have a new update.',
             },
             data: {
-                // This 'click_action' is necessary for Flutter FCM to handle routing.
                 click_action: 'FLUTTER_NOTIFICATION_CLICK',
                 route: notificationData.route || '/events',
             },
-            // This setting targets the 'high_importance_channel' defined in your Flutter code.
             android: {
                 notification: {
                     channelId: 'high_importance_channel',
@@ -77,6 +82,48 @@ export const sendNotificationOnCreate = onDocumentCreated(
             logger.log('Successfully sent message:', response);
         } catch (error) {
             logger.error('Error sending message:', error);
+        }
+    }
+);
+
+/**
+ * Automatically creates a notification document (a trigger) when a new event is posted.
+ * This function handles the Fan-out Write and targets a single hardcoded student for testing.
+ */
+export const notifyOnNewEvent = onDocumentCreated(
+    // Listen for new documents in the 'events' collection
+    'events/{eventId}',
+    async (event) => {
+        const eventSnapshot = event.data;
+        if (!eventSnapshot) {
+            logger.error('No event data found for new event.');
+            return;
+        }
+
+        const eventData = eventSnapshot.data() as EventData;
+
+
+        // Replace this with logic to fetch all student UIDs in a production environment.
+        const targetUserId = '5M7sr6LsnGQX8uFi2TfmiKdvMq72';
+
+
+        // Prepare the payload for the NOTIFICATION trigger collection
+        const notificationPayload: Omit<NotificationData, 'route'> & { createdAt: admin.firestore.FieldValue, route: string } = {
+            // Using 'userId' casing to match Function 1's expectation
+            userId: targetUserId,
+            title: `🔔 NEW EVENT: ${eventData.title}`,
+            // Truncate the description for the notification body limit
+            body: eventData.description.substring(0, 150) + '...',
+            route: `/events/${event.params.eventId}`,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            // Write the trigger document to the 'notifications' collection
+            await db.collection('notifications').add(notificationPayload);
+            logger.log(`Automation successful: Queued notification for user ${targetUserId} based on new event.`);
+        } catch (error) {
+            logger.error('Error writing notification trigger document:', error);
         }
     }
 );
