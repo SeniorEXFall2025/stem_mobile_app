@@ -20,7 +20,7 @@ dependencies:
   firebase_messaging: ^16.0.4
 
   # PUSH NOTIFICATIONS: REQUIRED for displaying notifications when the app is in the foreground
-  flutter_local_notifications: ^16.3.2
+  flutter_local_notifications: ^19.5.0
 
   # Utilities
   intl: ^0.20.2
