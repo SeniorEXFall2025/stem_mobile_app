@@ -15,7 +15,6 @@ import 'theme_controller.dart';
 import 'package:stem_mobile_app/pages/settings_page.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:io' show Platform;
 
 // Global instance for local notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -51,7 +50,7 @@ Future<void> showLocalNotification(RemoteMessage message) async {
   if (message.notification == null) return;
 
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'high_importance_channel', // ID must match the ID used in the backend notification payload
+    'high_importance_channel',
     'High Importance Notifications',
     channelDescription: 'This channel is used for important event notifications.',
     importance: Importance.max,
@@ -107,6 +106,7 @@ Future<String?> setupFCM() async {
   return await messaging.getToken();
 }
 
+
 // Global variable to hold the FCM token
 String? fcmToken;
 
@@ -118,6 +118,7 @@ void main() async {
 
   runApp(const MyApp());
 }
+
 
 Future<void> saveTokenToDatabase(String? token, String userId) async {
   if (token == null) return;
@@ -265,7 +266,6 @@ class AuthGate extends StatelessWidget {
         if (user == null) {
           return const AuthPage();
         }
-
 
         // Save the generated token to the authenticated user's profile
         if (fcmToken != null) {
