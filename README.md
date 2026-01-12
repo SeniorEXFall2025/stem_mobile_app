@@ -1,23 +1,26 @@
-# stem_mobile_app
+# STEM Ecosystem Mobile Application
 
-A new Flutter project.
+## Overview
+The STEM Ecosystem Mobile Application is a cross-platform, location-aware mobile app designed to connect students and educators with relevant STEM events, mentors, and organizations across Colorado. The app provides personalized content based on user interests and location, with real-time updates and push notifications.
 
-## Getting Started
+## Technologies Used
+- Flutter (cross-platform mobile development)
+- Firebase Authentication
+- Firebase Firestore (NoSQL database)
+- Firebase Cloud Messaging (push notifications)
+- Google Maps API
+- Jira (Agile project management)
+- Git/GitHub (version control)
 
-This project is a starting point for a Flutter application.
+## Key Features
+- Role-based access control for students and mentors
+- Personalized onboarding with interest and location selection
+- Real-time event feed backed by Firestore
+- Push notifications for nearby or interest-matched events
+- Google Maps integration for event locations
+- Favorites and event registration tracking
+- Light/Dark mode theming
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-flutter doctor -v
-flutter devices
-flutter emulators
-flutter emulators --launch stem_avd
-flutter devices
-flutter run -d emulator-5554
+## Team
+Team Honey Badgers – Senior Capstone Project  
+Metropolitan State University of Denver
