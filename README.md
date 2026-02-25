@@ -1,5 +1,9 @@
 # STEM Ecosystem Mobile Application
 
+
+![home](https://github.com/user-attachments/assets/41016f06-165f-453d-b869-2d284d5177c8)
+
+
 ## Overview
 The STEM Ecosystem Mobile Application is a cross-platform, location-aware mobile app designed to connect students and educators with relevant STEM events, mentors, and organizations across Colorado. The app provides personalized content based on user interests and location, with real-time updates and push notifications.
 
