@@ -79,8 +79,8 @@ This ensures location-based discovery remains intuitive and responsive.
 </p>
 
 **Create Event Demo:**  
-This demonstrates the mentor/admin event creation flow.  
-After creating an event, it immediately appears on the map and feed as shown in the result preview.
+This demonstrates the mentor event creation flow.  
+After creating an event, it appears immediately on the map and feed, as shown in the result preview.
 
 # Settings
 
@@ -94,8 +94,6 @@ Users can manage preferences and app configurations.
 
 ### Dark Mode  
 Demonstrates full dark mode support for improved accessibility and user experience.
-- Favorites and event registration tracking
-- Light/Dark mode theming
 
 
 ## Technologies Used
